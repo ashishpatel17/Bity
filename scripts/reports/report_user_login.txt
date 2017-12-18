@@ -1,0 +1,6 @@
+LoginName
+UserRole.FirstName
+UserRole.LastName
+UserRole.Email
+AppKey
+LoginDate
