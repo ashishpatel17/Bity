@@ -17,6 +17,7 @@ UserAuthenticationDB.Init = function(con) {
                 , refreshToken: String
                 , LoginDate: Date
                 , UserEmail: String
+                , UserId: Schema.ObjectId
                 , ExpirationDate: Date
             }, {collection: collection});
             this.UserAuthenticationModel = con.model(collection, this.UserAuthenticationSchema);

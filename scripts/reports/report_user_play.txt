@@ -1,8 +1,0 @@
-_id.IdmId
-UserRole.FirstName
-UserRole.LastName
-UserRole.Email
-Asset.AlphaSortTitle
-Asset.EpisodeNumber
-Asset.AppKeyList.DefaultCategory
-LastWatchedOn

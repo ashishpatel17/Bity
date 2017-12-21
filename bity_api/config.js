@@ -6,5 +6,11 @@ module.exports = function(collection) {
         , refreshTokenTimeoutInMinutes: 60 * 12
         , sessionSecretKey: "tokensecret"
         , cookieSessionTimeoutInMinutes: 60
+        , profilePicturePath: "public/profile_picture/"
+        , productPicturePath: "public/product_image/"
+        , profilePicturePublicPath: "profile_picture/"
+        , productPicturePublicPath: "product_image/"
+        , profileDefaultImage : "defult_profile_picture.png"
+        , productDefaultImage : "defult_product_picture.png"
     };
 };

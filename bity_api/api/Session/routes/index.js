@@ -6,6 +6,8 @@ var userAuthDB = require('../../../dal/userAuthenticationDB'),
 var loginController = new (require('../controllers/index'))(userAuthDB, userLoginDB, userProfileDB);
 
 app.post('/api/login', loginController.login);
+app.post('/api/loginWithGoogle', loginController.loginWithGoogle);
+app.post('/api/loginWithFacebook', loginController.loginWithFacebook);
 // app.get('/api/logout', loginController.logout);
 // app.use('/api', loginController.validateSession);
 // app.get('/api/refreshToken', loginController.refreshToken);

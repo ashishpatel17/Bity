@@ -107,6 +107,15 @@ app.use(sessionApi);
 var UserProfileApi = require('./bity_api/api/UserProfile/index');
 app.use(UserProfileApi);
 
+var ProductApi = require('./bity_api/api/Product/index');
+app.use(ProductApi);
+
+var RegistrationApi = require('./bity_api/api/Registration/index');
+app.use(RegistrationApi);
+
+var UserReviewApi = require('./bity_api/api/UserReview/index');
+app.use(UserReviewApi);
+
 app.options('*', cors(corsOptionsDelegate));
 
 http.createServer(app).listen(port);

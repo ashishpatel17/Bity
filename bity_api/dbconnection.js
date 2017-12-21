@@ -2,6 +2,9 @@ var mongoose = require('mongoose');
 var UserAuthDB = require('./dal/userAuthenticationDB');
 var UserLoginDB = require('./dal/userLoginDB');
 var UserProfileDB = require('./dal/userProfileDB');
+var ProductDB = require('./dal/ProductDB');
+var CategoryDB = require('./dal/CategoryDB');
+var TransactionDB = require('./dal/TransactionDB');
 
 function DBConnection() {}
 
@@ -21,6 +24,9 @@ DBConnection.Init = function(url, done) {
         UserAuthDB.Init(DBConnection.connection);
         UserLoginDB.Init(DBConnection.connection);
         UserProfileDB.Init(DBConnection.connection);
+        ProductDB.Init(DBConnection.connection);
+        CategoryDB.Init(DBConnection.connection);
+        TransactionDB.Init(DBConnection.connection);
         done();
     });
 };

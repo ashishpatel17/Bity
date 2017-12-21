@@ -91,6 +91,87 @@ function SessionController(userAuthDB, userLoginDB, userProfileDB) {
         }
     };
 
+    this.loginWithFacebook = function(req, res){
+      if (req && typeof req !== 'undefined' &&
+          req.body && typeof req.body !== 'undefined' &&
+          req.body['facebookId'] && typeof req.body['facebookId'] !== 'undefined') {
+          userProfileDB.getUserByFacebookId(req.body['facebookId'],function(err,result){
+            if(err){
+              res.status(403);
+              res.send({"Message": "Login Failed"});
+            }else{
+              if(result){
+                  saveLoginObject(result.email,function(err,finalObj){
+                    if(err){
+                      res.status(err.errorCode);
+                      res.send({"Message": err.Message});
+                    }else{
+                      var sess = req.session;
+                      sess.accessToken = finalObj.accessToken;
+                      sess.refreshToken = finalObj.refreshToken;
+                      res.set('x-access-token', finalObj.accessToken);
+                      res.set('x-refresh-token', finalObj.refreshToken);
+                      res.status(200);
+                      res.send({
+                        userId : finalObj.UserId
+                        , userName : finalObj.UserName
+                        , userFullName : finalObj.UserFullName
+                        , email : finalObj.UserEmail
+                      });
+                    }
+                  })
+              }else{
+                res.status(500);
+                res.send({"Message": "User not found"});
+              }
+            }
+          })
+      } else {
+          res.status(400);
+          res.send({"Message": "bad request"});
+      }
+    }
+
+    this.loginWithGoogle = function(req, res){
+      if (req && typeof req !== 'undefined' &&
+          req.body && typeof req.body !== 'undefined' &&
+          req.body['googleId'] && typeof req.body['googleId'] !== 'undefined') {
+          userProfileDB.getUserByGoogleId(req.body['googleId'],function(err,result){
+            if(err){
+              res.status(403);
+              res.send({"Message": "Login Failed"});
+            }else{
+              if(result){
+                  saveLoginObject(result.email,function(err,finalObj){
+                    if(err){
+                      res.status(err.errorCode);
+                      res.send({"Message": err.Message});
+                    }else{
+                      var sess = req.session;
+                      sess.accessToken = finalObj.accessToken;
+                      sess.refreshToken = finalObj.refreshToken;
+                      res.set('x-access-token', finalObj.accessToken);
+                      res.set('x-refresh-token', finalObj.refreshToken);
+                      res.status(200);
+                      res.send({
+                        userId : finalObj.UserId
+                        , userName : finalObj.UserName
+                        , userFullName : finalObj.UserFullName
+                        , email : finalObj.UserEmail
+                      });
+                    }
+                  })
+              }else{
+                res.status(500);
+                res.send({"Message": "User not found"});
+              }
+            }
+          })
+      } else {
+          res.status(400);
+          res.send({"Message": "bad request"});
+      }
+    }
 
     this.login = function (req, res) {
 
@@ -101,69 +182,83 @@ function SessionController(userAuthDB, userLoginDB, userProfileDB) {
             userLoginDB.getLoginByEmail(req.body['email'],function(err,result){
               if(err){
                 res.status(403);
-                res.send({"Message": "Login Failed"});
+                res.send({"Message": "Login Failed","ErrorCode": "ERR_LOGIN_001"});
               }else{
                 if(result){
                   if(bcrypt.compareSync(req.body['password'], result.password)){
-                    var accessToken = jwt.sign({user: result.email}, config.sessionSecretKey, {
-                        expiresIn: config.accessTokenTimeoutInMinutes * 60
-                    });
 
-                    var refreshToken = jwt.sign({user: result.email}, config.sessionSecretKey, {
-                        expiresIn: config.refreshTokenTimeoutInMinutes * 60
-                    });
-
-                    userProfileDB.getUserByEmail(result.email,function(err,userResult){
-                      if(userResult){
-                        var expirationDate = new Date();
-                        expirationDate.setTime(expirationDate.getTime() + (config.accessTokenTimeoutInMinutes * 60 * 1000));
-                        var authObj = {
-                          accessToken : accessToken
-                         , refreshToken : refreshToken
-                         , LoginDate : new Date()
-                         , UserEmail : userResult.email
-                         , ExpirationDate : expirationDate
-                        }
-                        userAuthDB.saveUserAuthenticationObj(authObj,function(err,result){
-                          if(err){
-                            res.status(500);
-                            res.send({"Message": "Unable to login"});
-                          }else{
-                            var sess = req.session;
-                            sess.accessToken = accessToken;
-                            sess.refreshToken = refreshToken;
-                            res.set('x-access-token', accessToken);
-                            res.set('x-refresh-token', refreshToken);
-                            res.status(200);
-                            res.send({
-                              userId : userResult._id
-                              , userName : userResult.userName
-                              , userFullName : userResult.fullName
-                              , email : userResult.email
-                            });
-                          }
-                        })
+                    saveLoginObject(result.email,function(err,finalObj){
+                      if(err){
+                        res.status(err.errorCode);
+                        res.send({"Message": err.Message});
                       }else{
-                        res.status(500);
-                        res.send({"Message": "User not found"});
+                        var sess = req.session;
+                        sess.accessToken = finalObj.accessToken;
+                        sess.refreshToken = finalObj.refreshToken;
+                        res.set('x-access-token', finalObj.accessToken);
+                        res.set('x-refresh-token', finalObj.refreshToken);
+                        res.status(200);
+                        res.send({
+                          userId : finalObj.UserId
+                          , userName : finalObj.UserName
+                          , userFullName : finalObj.UserFullName
+                          , email : finalObj.UserEmail
+                        });
                       }
                     })
+
                   }else{
                     res.status(500);
-                    res.send({"Message": "Invalid Userid or password"});
+                    res.send({"Message": "Invalid Userid or password","ErrorCode": "ERR_LOGIN_002"});
                   }
                 }else{
                   res.status(500);
-                  res.send({"Message": "User not found"});
+                  res.send({"Message": "User not found","ErrorCode": "ERR_LOGIN_003"});
                 }
               }
             })
         } else {
             res.status(400);
-            res.send({"Message": "bad request"});
+            res.send({"Message": "bad request","ErrorCode": "ERR_LOGIN_004"});
         }
     };
 
+    var saveLoginObject = function(userEmail,callback){
+
+      var accessToken = jwt.sign({user: userEmail}, config.sessionSecretKey, {
+          expiresIn: config.accessTokenTimeoutInMinutes * 60
+      });
+
+      var refreshToken = jwt.sign({user: userEmail}, config.sessionSecretKey, {
+          expiresIn: config.refreshTokenTimeoutInMinutes * 60
+      });
+
+      userProfileDB.getUserByEmail(userEmail,function(err,userResult){
+        if(userResult){
+          var expirationDate = new Date();
+          expirationDate.setTime(expirationDate.getTime() + (config.accessTokenTimeoutInMinutes * 60 * 1000));
+          var authObj = {
+            accessToken : accessToken
+           , refreshToken : refreshToken
+           , LoginDate : new Date()
+           , UserEmail : userResult.email
+           , UserId : userResult._id
+           , UserName : userResult.userName
+           , UserFullName : userResult.fullName
+           , ExpirationDate : expirationDate
+          }
+          userAuthDB.saveUserAuthenticationObj(authObj,function(err,result){
+            if(err){
+              callback({errorCode:500,Message:"Unable to login"},null);
+            }else{
+              callback(null,authObj);
+            }
+          })
+        }else{
+          callback({errorCode:500,Message:"User not found"},null);
+        }
+      })
+    }
 
     // this.refreshToken = function (req, res) {
     //     if (req && typeof req !== 'undefined' &&

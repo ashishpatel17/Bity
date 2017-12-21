@@ -20,6 +20,7 @@ UserProfileDB.Init = function(con) {
                 , facebookId: String
                 , profilePicture: String
                 , address: String
+                , location: String
                 , phoneNumber: String
                 , activeStatus: Boolean
                 , userType: String
@@ -27,7 +28,8 @@ UserProfileDB.Init = function(con) {
                 , sellerRating: Number
                 , sellerReview : [{
                   userId : Schema.ObjectId,
-                  review : String
+                  comment : String,
+                  rating : Number
                 }]
                 , following: [Schema.ObjectId]
                 , wishList : [Schema.ObjectId]
@@ -39,8 +41,44 @@ UserProfileDB.Init = function(con) {
     }
 };
 
+UserProfileDB.getUserFollowers = function (userId, callback){
+    this.UserProfileModel.find({following: userId}, function (err, result){
+        if (err) callback(err);
+        else {
+            callback(null, result);
+        }
+    });
+};
+
 UserProfileDB.getUserByEmail = function (email, callback){
     this.UserProfileModel.findOne({email: email}, function (err, result){
+        if (err) callback(err);
+        else {
+            callback(null, result);
+        }
+    });
+};
+
+UserProfileDB.getUserByGoogleId = function (googleId, callback){
+    this.UserProfileModel.findOne({googleId: googleId}, function (err, result){
+        if (err) callback(err);
+        else {
+            callback(null, result);
+        }
+    });
+}
+
+UserProfileDB.getUserByFacebookId = function (facebookId, callback){
+    this.UserProfileModel.findOne({facebookId: facebookId}, function (err, result){
+        if (err) callback(err);
+        else {
+            callback(null, result);
+        }
+    });
+}
+
+UserProfileDB.getUserById = function (id, callback){
+    this.UserProfileModel.findOne({_id: id}, function (err, result){
         if (err) callback(err);
         else {
             callback(null, result);

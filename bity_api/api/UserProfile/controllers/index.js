@@ -1,4 +1,5 @@
 var config = require('../../../config')();
+var UserValidation = new (require('../../../libs/userValidation'))();
 var jwt = require('jsonwebtoken');
 var Mongoose = require('mongoose').Mongoose;
 var mongoose = new Mongoose();
@@ -6,96 +7,52 @@ var _ = require('underscore');
 var bcrypt = require('bcrypt');
 var fs = require('fs');
 var path = require('path');
+var async = require('async');
 
-function UserProfileController(userAuthDB,userProfileDB,userLoginDB) {
-  this.registration = function(req, res){
-    if(req && typeof req !== 'undefined' &&
-        req.body && typeof req.body !== 'undefined' &&
-        req.body['full_name'] && typeof req.body['full_name'] !== 'undefined' &&
-        req.body['user_name'] && typeof req.body['user_name'] !== 'undefined' &&
-        req.body['email'] && typeof req.body['email'] !== 'undefined' &&
-        req.body['password'] && typeof req.body['password'] !== 'undefined'){
-          var userObj = {
-            fullName: req.body['full_name']
-            , userName: req.body['user_name']
-            , email: req.body['email']
-            , createDate: new Date()
-          }
-          var loginObj = {
-            email: req.body['email']
-            , userName: req.body['user_name']
-            , password: bcrypt.hashSync(req.body['password'],10)
-          }
-          registerUser(userObj,loginObj,function(rep){
-              res.status(rep.status);
-              res.send({"Message":rep.Message,"Data":rep.data});
-          });
+function UserProfileController(userAuthDB,userProfileDB,userLoginDB,TransactionDB) {
+  /*
+    Controller function to get user profile details
+  */
+  this.getUserProfile = function(req,res){
+    if(req && typeof req !== 'undefined' && req.params && typeof req.params !== 'undefined' && req.params['userId'] && typeof req.params['userId'] !== 'undefined'){
+      getUserProfleDetails(req,false,function(err,profResult){
+        if(err){
+          res.status(err.errorCode);
+          res.send({"Message": err.Message});
+        }else{
+          res.status(200);
+          res.send(profResult);
+        }
+      })
     }else{
       res.status(400);
       res.send({"Message": "Invalid Parameters"});
     }
   }
 
-  this.googleRegistration = function(req, res){
-    if(req && typeof req !== 'undefined' &&
-        req.body && typeof req.body !== 'undefined' &&
-        req.body['full_name'] && typeof req.body['full_name'] !== 'undefined' &&
-        req.body['user_name'] && typeof req.body['user_name'] !== 'undefined' &&
-        req.body['email'] && typeof req.body['email'] !== 'undefined' &&
-        req.body['password'] && typeof req.body['password'] !== 'undefined' &&
-        req.body['google_id'] && typeof req.body['google_id'] !== 'undefined'){
-          var userObj = {
-            fullName: req.body['full_name']
-            , userName: req.body['user_name']
-            , email: req.body['email']
-            , googleId: req.body['google_id']
-            , createDate: new Date()
-          }
-          var loginObj = {
-            email: req.body['email']
-            , userName: req.body['user_name']
-            , password: bcrypt.hashSync(req.body['password'],10)
-          }
-          registerUser(userObj,loginObj,function(rep){
-              res.status(rep.status);
-              res.send({"Message":rep.Message,"Data":rep.data});
-          });
+  /*
+    Controller function to get user own profile details
+  */
+  this.getMyProfile = function(req,res){
+    if(req && typeof req !== 'undefined' && req.params && typeof req.params !== 'undefined' && req.params['userId'] && typeof req.params['userId'] !== 'undefined'){
+      getUserProfleDetails(req,true,function(err,profResult){
+        if(err){
+          res.status(err.errorCode);
+          res.send({"Message": err.Message});
+        }else{
+          res.status(200);
+          res.send(profResult);
+        }
+      })
     }else{
       res.status(400);
       res.send({"Message": "Invalid Parameters"});
     }
   }
 
-  this.facebookRegistration = function(req, res){
-    if(req && typeof req !== 'undefined' &&
-        req.body && typeof req.body !== 'undefined' &&
-        req.body['full_name'] && typeof req.body['full_name'] !== 'undefined' &&
-        req.body['user_name'] && typeof req.body['user_name'] !== 'undefined' &&
-        req.body['email'] && typeof req.body['email'] !== 'undefined' &&
-        req.body['password'] && typeof req.body['password'] !== 'undefined' &&
-        req.body['facebook_id'] && typeof req.body['facebook_id'] !== 'undefined'){
-          var userObj = {
-            fullName: req.body['full_name']
-            , userName: req.body['user_name']
-            , email: req.body['email']
-            , facebookId: req.body['facebook_id']
-            , createDate: new Date()
-          }
-          var loginObj = {
-            email: req.body['email']
-            , userName: req.body['user_name']
-            , password: bcrypt.hashSync(req.body['password'],10)
-          }
-          registerUser(req,function(rep){
-              res.status(rep.status);
-              res.send({"Message":rep.Message,"Data":rep.data});
-          });
-    }else{
-      res.status(400);
-      res.send({"Message": "Invalid Parameters"});
-    }
-  }
-
+  /*
+    Controller function to edit user profile
+  */
   this.editProfile = function(req, res){
     if(req && typeof req !== 'undefined' && req.body && typeof req.body !== 'undefined' && req.body["email"] && typeof req.body["email"] !== 'undefined'){
       userProfileDB.getUserByEmail(req.body['email'],function(err,result){
@@ -118,11 +75,11 @@ function UserProfileController(userAuthDB,userProfileDB,userLoginDB) {
                 if(result.profilePicture && result.profilePicture!=null && result.profilePicture!=""){
                   oldFileName = result.profilePicture;
                 }
-                var filePath = path.resolve(__dirname,"../../../../public/profile_picture");
+                var filePath = path.resolve(__dirname,"../../../../"+config.profilePicturePath);
                 var date = new Date();
                 var fileName = result.fullName.replace(/ /g,'')+"_"+date.getTime()+"."+fileType.split("/")[1];
                 result["profilePicture"] = fileName;
-                fs.writeFile(filePath+"/"+fileName,req.files.profile_pic.data,"binary",function(err) {
+                fs.writeFile(filePath+fileName,req.files.profile_pic.data,"binary",function(err) {
                   if(err){
                     res.status(400);
                     res.send({"Message": "unable to update user profile"});
@@ -168,6 +125,9 @@ function UserProfileController(userAuthDB,userProfileDB,userLoginDB) {
     }
   }
 
+  /*
+    Controller function to change password
+  */
   this.changePassword = function(req,res){
     if(req && typeof req !== 'undefined' && req.body && typeof req.body !== 'undefined' &&
      req.body["old_password"] && typeof req.body["old_password"] !== 'undefined' &&
@@ -217,35 +177,125 @@ function UserProfileController(userAuthDB,userProfileDB,userLoginDB) {
     }
   }
 
-  var registerUser = function(userObj,loginObj,callback){
-    userProfileDB.getUserByEmail(userObj['email'],function(err,result){
-      if(result){
-        callback({status:500,Message:"email provided is allready registered"});
-      }else{
-        userProfileDB.insertUserProfile(userObj,function(err,userResult){
-          if(err){
-            callback({status:500,Message:"Unable to save user"});
-          }else{
-            userLoginDB.saveUserLoginInfo(loginObj,function(err,loginResult){
-              if(err){
-                userProfileDB.deleteUserProfileByEmail(userObj['email'],function(){});
-                callback({status:500,Message:"Unable to save user"});
-              }else{
-                var data = {
-                  "fullName": userObj['fullName']
-                  , "userName": userObj['userName']
-                  , "email": userObj['email']
+  /*
+    controller function to add follower of user
+  */
+  this.followSeller = function(req,res){
+    if(req && typeof req !== 'undefined' && req.params && typeof req.params !== 'undefined' && req.params["sellerId"] && typeof req.params["sellerId"] !== 'undefined'){
+      UserValidation.getLoginInfo(req,function(err,loginRes){
+        if(err){
+          callback({errorCode:500,Message:"unauthorized request"},null);
+        }else{
+          userProfileDB.getUserById(req.params["sellerId"],function(err,result){
+            if(err){
+              res.status(500);
+              res.send({"Message": "Unable to find user"});
+            }else{
+              if(result){
+                if(result.following.indexOf(loginRes.UserId)==-1){
+                  result.following.push(loginRes.UserId);
+                  userProfileDB.updateUserProfile(result,function(err){
+                    if(err){
+                      res.status(500);
+                      res.send({"Message": "Fail to follow this seller"});
+                    }else{
+                      res.status(200);
+                      res.send({"Message": "successfully followed"});
+                    }
+                  })
+                }else{
+                  res.status(500);
+                  res.send({"Message": "You are allready following this User"});
                 }
-                callback({status:200,Message:"User successfully created",data:data});
+              }else{
+                res.status(400);
+                res.send({"Message": "User not found"});
               }
-            })
-          }
-        })
-      }
-    })
+            }
+          })
+        }
+      })
+    }else{
+      res.status(400);
+      res.send({"Message": "Invalid Parameters"});
+    }
   }
 
 
+  var getUserProfleDetails = function(req,IsUserSpecific,callback){
+    async.waterfall([
+      function(callback){
+        UserValidation.getLoginInfo(req,function(err,loginRes){
+          if(err){
+            callback({errorCode:500,Message:"unauthorized request"},null);
+          }else{
+            if(!IsUserSpecific && loginRes){
+              callback(null,loginRes);
+            }else if(IsUserSpecific && loginRes && loginRes.UserId == req.params['userId']){
+              callback(null,loginRes);
+            }else{
+              callback({errorCode:500,Message:"unauthorized request"},null);
+            }
+          }
+        })
+      },
+      function(loginRes,callback){
+        userProfileDB.getUserById(req.params['userId'],function(err,usrResult){
+          if(err){
+            callback({errorCode:500,Message:"Unable to find user profile details"},null);
+          }else{
+            if(usrResult){
+              callback(null,loginRes,usrResult);
+            }else{
+              callback({errorCode:500,Message:"User profile details not found"},null);
+            }
+          }
+        })
+      },
+      function(loginRes,usrResult,callback){
+        userProfileDB.getUserFollowers(req.params['userId'],function(err,followResult){
+          if(err){
+            callback({errorCode:500,Message:"Unable to find user profile details"},null);
+          }else{
+            callback(null,loginRes,usrResult,followResult);
+          }
+        })
+      },
+      function(loginRes,usrResult,followResult,callback){
+        TransactionDB.getUserAllTransaction(loginRes.userId,function(err,tranResult){
+          if(err){
+            callback({errorCode:500,Message:"Unable to find user transaction details"},null);
+          }else{
+            var profilePicPath = req.headers.host+"/"+config.profilePicturePublicPath;
+            var responseObj = {
+              fullName: usrResult.fullName
+              , userName: usrResult.userName
+              , email: usrResult.email
+              , googleId: usrResult.googleId
+              , facebookId: usrResult.facebookId
+              , profilePicture: (usrResult.profilePicture == undefined || usrResult.profilePicture == null)?profilePicPath+config.profileDefaultImage:profilePicPath+usrResult.profilePicture
+              , address: usrResult.address
+              , phoneNumber: usrResult.phoneNumber
+              , activeStatus: usrResult.activeStatus
+              , userType: usrResult.userType
+              , bitcoinAddress: usrResult.bitcoinAddress
+              , sellerRating: usrResult.sellerRating
+              , following: usrResult.following.length
+              , follower: followResult.length
+              , transactions: tranResult.length
+            }
+            callback(null,responseObj);
+          }
+        })
+      }
+    ],function(err, result){
+      if(err){
+        callback(err,null);
+      }else{
+        callback(null,result);
+      }
+    })
+  }
 }
 
 module.exports = UserProfileController;
