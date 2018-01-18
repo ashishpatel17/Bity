@@ -1,5 +1,5 @@
 var mongoose = require('mongoose');
-var UserAuthDB = require('~/Bity/bity_api/dal/UserAuthenticationDB.js');
+var UserAuthDB = require('./UserAuthenticationDB.js');
 var UserLoginDB = require('./dal/UserLoginDB');
 var UserProfileDB = require('./dal/UserProfileDB');
 var ProductDB = require('./dal/ProductDB');
