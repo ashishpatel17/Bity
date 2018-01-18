@@ -1,0 +1,32 @@
+{
+	"_id" : ObjectId("5a3a03c87c896f5baea3a21a"),
+	"categoryName" : "Electronics",
+	"subCategory" : [
+		{
+			"subCategoryId" : ObjectId("5a3804d87357bc03b3b55f21"),
+			"subCategoryName" : "Mobile,Camera & Accessories"
+		},
+		{
+			"subCategoryId" : ObjectId("5a3804d87357bc03b3b55f22"),
+			"subCategoryName" : "Home appliances"
+		}
+	]
+},
+{
+	"_id" : ObjectId("5a3a03c87c896f5baea3a213"),
+	"categoryName" : "Furniture",
+	"subCategory" : [
+		{
+			"subCategoryId" : ObjectId("5a3804d87357bc03b3b55f11"),
+			"subCategoryName" : "Book Shelves"
+		},
+		{
+			"subCategoryId" : ObjectId("5a3804d87357bc03b3b55f31"),
+			"subCategoryName" : "Bed"
+		},
+		{
+			"subCategoryId" : ObjectId("5a3804d87357bc03b3b55f41"),
+			"subCategoryName" : "Sofa"
+		}
+	]
+},

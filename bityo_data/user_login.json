@@ -1,0 +1,54 @@
+{
+	"_id" : ObjectId("5a3804d87357bc03b3b55f2b"),
+	"email" : "mpatelashish@gmail.com",
+	"password" : "$2a$10$9sZw7h7djjmwn7kcDaOmq.CBpXb4tq7Du/QSCVv34Y6.Ji4Chinou",
+	"userName" : "mpatelashish"
+},
+{
+	"_id" : ObjectId("5a4bb952cc8112296187528b"),
+	"email" : "ashishpatelmohanbhai@gmail.com",
+	"password" : "$2a$10$2URe8eAdoKTq.oIv5qKMn.fRCQ6oOvV77tTqoLsCRG0KDyVduLJ06",
+	"userName" : "patelruchika"
+},
+{
+	"_id" : ObjectId("5a4d06a65cf6e27fa06a1234"),
+	"email" : "mpatelashish@yahoo.com",
+	"password" : "$2a$10$7kCq7lP6lCa1GVzUsq.sQOBeXEJSXLBvKblQTUHg56gwQvWCeSwRu",
+	"userName" : "ashishPatel"
+},
+{
+	"_id" : ObjectId("5a4d0a6c5cf6e27fa06a1237"),
+	"email" : "patelruchika2610@gmail.com",
+	"password" : "$2a$10$jxnHVp9EcItjHLWCjqBBIuqe8wVkzEvN4oCFiBw049PLm4s4.hRnm",
+	"userName" : "amit patel"
+},
+{
+	"_id" : ObjectId("5a4d0bfa774b2a8032084bad"),
+	"email" : "mpatelashish@yahooo.com",
+	"password" : "$2a$10$pOHTA3UDxcIH1RpD8zEwL.s4UM91oX0q5wvBnYl2Fzycjxfar9ylC",
+	"userName" : "mpatelashish"
+},
+{
+	"_id" : ObjectId("5a54743b57f4ad88ead48177"),
+	"email" : "mpatelashish9@gmail.com",
+	"password" : "",
+	"userName" : "mpatelashish1"
+},
+{
+	"_id" : ObjectId("5a5474bd57f4ad88ead4817b"),
+	"email" : "mpatelashish@yah.com",
+	"password" : "",
+	"userName" : "mpatelashish"
+},
+{
+	"_id" : ObjectId("5a5ece03fd736548c62669ea"),
+	"email" : "mpatelashish97@gmail.com",
+	"password" : "",
+	"userName" : "mpatelashish"
+},
+{
+	"_id" : ObjectId("5a5ece33fd736548c62669ee"),
+	"email" : "mpate11lashish@gmail.com",
+	"password" : "$2a$10$uDUfFxPF7XfIAdbKOKJsYegT90uh2MYNDORxb7Ks/ONCfyzREuBQu",
+	"userName" : "mpatelashish"
+},

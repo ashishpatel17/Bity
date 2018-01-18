@@ -1,0 +1,187 @@
+{
+	"_id" : ObjectId("5a39ffda7c896f5baea3a010"),
+	"category" : ObjectId("5a3a03c87c896f5baea3a21a"),
+	"isNagotiable" : true,
+	"location" : {
+		"type" : [
+			23.0686599,
+			72.5819748
+		]
+	},
+	"offers" : [
+		{
+			"_id" : ObjectId("5a3d667035c34c4741ddb14f"),
+			"offerPrice" : 500,
+			"userId" : ObjectId("5a3804d87357bc03b3b55f2a")
+		},
+		{
+			"_id" : ObjectId("5a4db9d6a2456f995d77ccaa"),
+			"offerPrice" : 500,
+			"userId" : ObjectId("5a3804d87357bc03b3b55f2a")
+		},
+		{
+			"_id" : ObjectId("5a5e40d0adaf1548a3a788bd"),
+			"offerPrice" : 500,
+			"userId" : ObjectId("5a3804d87357bc03b3b55f2a")
+		}
+	],
+	"postedDate" : ISODate("2017-12-24T10:19:41.590-08:00"),
+	"price" : 22000,
+	"productDescription" : "DSLR camera with 2 lense",
+	"productName" : "Nikon D3300",
+	"productTitle" : "Camera",
+	"report" : [
+		{
+			"_id" : ObjectId("5a40a4008c9e68743c277c48"),
+			"reportMessage" : "ok ok"
+		},
+		{
+			"_id" : ObjectId("5a40a43ba4a44e7443125048"),
+			"reportMessage" : "ok ok",
+			"userId" : ObjectId("5a3804d87357bc03b3b55f2a")
+		},
+		{
+			"_id" : ObjectId("5a5ddea2c361832b2efbe73a"),
+			"reportMessage" : ""
+		}
+	],
+	"sellerId" : ObjectId("5a3804d87357bc03b3b55f2a"),
+	"subcateory" : ObjectId("5a3804d87357bc03b3b55f21")
+},
+{
+	"_id" : ObjectId("5a3a008d7c896f5baea3a077"),
+	"category" : ObjectId("5a3a03c87c896f5baea3a21a"),
+	"isNagotiable" : true,
+	"location" : [
+		23.0923603,
+		72.5899249
+	],
+	"offers" : [
+		{
+			"userId" : ObjectId("5a3804d87357bc03b3b55f21"),
+			"offerPrice" : 10000
+		},
+		{
+			"userId" : ObjectId("5a3804d87357bc03b3b55f23"),
+			"offerPrice" : 12000
+		}
+	],
+	"postedDate" : ISODate("2017-12-24T10:19:41.590-08:00"),
+	"price" : 17000,
+	"productDescription" : "Samsung note 3 2 year old with stylus",
+	"productName" : "Samsung note 3",
+	"productTitle" : "Samsung mobile",
+	"report" : [
+		{
+			"userId" : ObjectId("5a3804d87357bc03b3b55f21"),
+			"reportMessage" : "Its too old model"
+		}
+	],
+	"sellerId" : ObjectId("5a3804d87357bc03b3b55f2a"),
+	"subcateory" : ObjectId("5a3804d87357bc03b3b55f21")
+},
+{
+	"_id" : ObjectId("5a3fefbd18442f5093b854bd"),
+	"category" : ObjectId("5a3a03c87c896f5baea3a213"),
+	"image" : [
+		"wooden3X2sofaset_1516119745551.jpeg",
+		"wooden3X2sofaset_1516119745552.png"
+	],
+	"isNagotiable" : true,
+	"location" : [
+		23.113016,
+		72.598749
+	],
+	"offers" : [ ],
+	"postedDate" : ISODate("2017-12-24T10:19:41.590-08:00"),
+	"price" : 30000,
+	"productDescription" : "2 single seater and 1 3 seater wooden sofa",
+	"productName" : "wooden 3X2 sofa set",
+	"productTitle" : "curved sofa set",
+	"report" : [ ],
+	"sellerId" : ObjectId("5a3804d87357bc03b3b55f2a"),
+	"subcateory" : ObjectId("5a3804d87357bc03b3b55f41")
+},
+{
+	"_id" : ObjectId("5a4db86aa2456f995d77cca7"),
+	"category" : ObjectId("5a3a03c87c896f5baea3a213"),
+	"isNagotiable" : true,
+	"location" : [
+		23.113016,
+		72.598749
+	],
+	"postedDate" : ISODate("2018-01-03T21:15:22.293-08:00"),
+	"price" : 50000,
+	"productDescription" : "dining table with set of 6 chairs",
+	"productName" : "dining table",
+	"productTitle" : "dining table",
+	"sellerId" : "5a3804d87357bc03b3b55f2a",
+	"subcateory" : ObjectId("5a3804d87357bc03b3b55f41")
+},
+{
+	"_id" : ObjectId("5a4db86fa2456f995d77cca8"),
+	"category" : ObjectId("5a3a03c87c896f5baea3a213"),
+	"image" : [
+		"wooden3X2sofaset_1515042927136.jpeg",
+		"wooden3X2sofaset_1515042927136.jpeg"
+	],
+	"isNagotiable" : true,
+	"location" : [
+		23.1167224,
+		72.5810049
+	],
+	"postedDate" : ISODate("2018-01-03T21:15:27.140-08:00"),
+	"price" : 20000,
+	"productDescription" : "TV wall with mounted speakers",
+	"productName" : "TV wall",
+	"productTitle" : "TV wall",
+	"report" : [
+		{
+			"_id" : ObjectId("5a4dba4ba2456f995d77ccac"),
+			"reportMessage" : "ok ok",
+			"userId" : ObjectId("5a3804d87357bc03b3b55f2a")
+		},
+		{
+			"_id" : ObjectId("5a5e4190fd736548c62669e8"),
+			"reportMessage" : "ok ok"
+		}
+	],
+	"sellerId" : ObjectId("5a3804d87357bc03b3b55f2a"),
+	"subcateory" : ObjectId("5a3804d87357bc03b3b55f41")
+},
+{
+	"_id" : ObjectId("5a4db8e7a2456f995d77cca9"),
+	"category" : ObjectId("5a3a03c87c896f5baea3a21a"),
+	"image" : [
+		"airpod_1515043047253.png"
+	],
+	"isNagotiable" : false,
+	"location" : [
+		23.113016,
+		72.598749
+	],
+	"postedDate" : ISODate("2018-01-03T21:17:27.262-08:00"),
+	"price" : 12000,
+	"productDescription" : "apple air pod",
+	"productName" : "air pod",
+	"productTitle" : "wireless headphones",
+	"sellerId" : ObjectId("5a3804d87357bc03b3b55f2a"),
+	"subcateory" : ObjectId("5a3804d87357bc03b3b55f21")
+},
+{
+	"_id" : ObjectId("5a55b985f9653ec86e723943"),
+	"category" : ObjectId("5a3a03c87c896f5baea3a213"),
+	"image" : [ ],
+	"isNagotiable" : true,
+	"location" : [
+		23.0995927,
+		72.588548
+	],
+	"postedDate" : ISODate("2018-01-09T22:58:13.364-08:00"),
+	"price" : 30000,
+	"productDescription" : "2 single seater and 1 3 seater wooden sofa",
+	"productName" : "wooden 3X2 sofa set",
+	"productTitle" : "sofa set",
+	"sellerId" : ObjectId("5a3804d87357bc03b3b55f2a"),
+	"subcateory" : ObjectId("5a3804d87357bc03b3b55f41")
+},

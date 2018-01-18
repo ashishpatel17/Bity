@@ -1,0 +1,11 @@
+{
+	"_id" : ObjectId("5a41d7b7ee9c9b6b0fa25f49"),
+	"Price" : 20000,
+	"ProductId" : ObjectId("5a39ffda7c896f5baea3a010"),
+	"Status" : "sold",
+	"TransactionDate" : ISODate("2017-12-20T16:00:00.000-08:00"),
+	"TransactionType" : "sales",
+	"TransactionWith" : ObjectId("5a3804d87357bc03b3b55f2b"),
+	"UserEmail" : "mpatelashish@gmail.com",
+	"UserId" : ObjectId("5a3804d87357bc03b3b55f2a")
+},

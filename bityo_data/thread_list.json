@@ -1,0 +1,23 @@
+{
+	"_id" : ObjectId("5a48df05e3525d0a0c2aa020"),
+	"lastMessage" : {
+		"dateTime" : ISODate("2018-01-16T09:27:05.470-08:00"),
+		"message" : "testing",
+		"senderId" : ObjectId("5a3804d87357bc03b3b55f22"),
+		"messageId" : ObjectId("5a5e35e997dd6145f1f49cab")
+	},
+	"participants" : [
+		{
+			"userId" : ObjectId("5a3804d87357bc03b3b55f22"),
+			"userName" : "manish patel",
+			"userEmail" : "manish@gmail.com",
+			"userProfilePic" : null
+		},
+		{
+			"userId" : ObjectId("5a3804d87357bc03b3b55f2a"),
+			"userName" : "ashish patel",
+			"userEmail" : "mpatelashish@gmail.com",
+			"userProfilePic" : null
+		}
+	]
+},
