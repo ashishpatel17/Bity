@@ -16,12 +16,13 @@ ProductDB.Init = function(con) {
                 , productTitle: String
                 , productName: String
                 , productDescription: String
+                , address: String
                 , price: Number
                 , image: [String]
-                , location: String
+                , location: [Number]
                 , isNagotiable: Boolean
-                , category: String
-                , subcateory: String
+                , category: Schema.ObjectId
+                , subcateory: Schema.ObjectId
                 , sellerId: Schema.ObjectId
                 , offers: [{
                   userId:Schema.ObjectId,
@@ -29,14 +30,24 @@ ProductDB.Init = function(con) {
                 }]
                 , report: [{
                   userId:Schema.ObjectId,
-                  reportMessage:Number
+                  reportMessage:String
                 }]
                 , lastUpdateDate : Date
-                , createDate : Date
+                , postedDate : Date
             }, {collection: collection});
+            this.ProductSchema.index({ location: '2d' });
             this.ProductModel = con.model(collection, this.ProductSchema);
         }
     }
+};
+
+ProductDB.getProductByCondition = function (condition, callback){
+    this.ProductModel.find(condition,{},{sort: { postedDate : -1 }},function (err, result){
+        if (err) callback(err);
+        else {
+            callback(null, result);
+        }
+    });
 };
 
 ProductDB.getProductById = function (productId, callback){
@@ -57,13 +68,38 @@ ProductDB.getProductBySeller = function (sellerId, callback){
     });
 }
 
-// ProductDB.insertProduct = function (obj, callback){
-//     this.ProductModel.collection.insert(obj,{setDefaultsOnInsert: true}, function (err){
-//         if (err) callback(err);
-//         else callback(null);
-//     });
-// };
-//
+ProductDB.addProductOfferByUser = function (productId,userId,offerPrice, callback){
+  this.ProductModel.findOneAndUpdate({
+          _id: productId
+      }, {$addToSet:{offers:{userId:userId,offerPrice:offerPrice}},$set:{ LastUpdatedDate: new Date()}}, {new: true}, function (err, obj) {
+          if (err) callback(err, null);
+          else callback(null, obj);
+  });
+}
+
+ProductDB.addProductReport = function (productId,userId,message,callback){
+  this.ProductModel.findOneAndUpdate({
+          _id: productId
+      }, {$addToSet:{report:{userId:userId,reportMessage:message}},$set:{ LastUpdatedDate: new Date()}}, {new: true}, function (err, obj) {
+          if (err) callback(err, null);
+          else callback(null, obj);
+  });
+}
+
+ProductDB.updateProduct = function (productId,obj, callback){
+    this.ProductModel.findOneAndUpdate({_id:productId},obj,{new: true},function (err){
+        if (err) callback(err);
+        else callback(null);
+    });
+};
+
+ProductDB.insertProduct = function (obj, callback){
+    this.ProductModel.collection.insert(obj,{setDefaultsOnInsert: true}, function (err){
+        if (err) callback(err);
+        else callback(null);
+    });
+};
+
 // ProductDB.updateProduct = function (obj, callback){
 //     this.ProductModel.findOneAndUpdate({email: obj.email}, obj, {new: true}, function (err){
 //         if (err) callback(err);

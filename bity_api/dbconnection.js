@@ -1,10 +1,14 @@
 var mongoose = require('mongoose');
-var UserAuthDB = require('./dal/userAuthenticationDB');
-var UserLoginDB = require('./dal/userLoginDB');
-var UserProfileDB = require('./dal/userProfileDB');
+var UserAuthDB = require('./dal/UserAuthenticationDB');
+var UserLoginDB = require('./dal/UserLoginDB');
+var UserProfileDB = require('./dal/UserProfileDB');
 var ProductDB = require('./dal/ProductDB');
 var CategoryDB = require('./dal/CategoryDB');
 var TransactionDB = require('./dal/TransactionDB');
+var ThreadListDB = require('./dal/ThreadListDB');
+var ThreadMessageDB = require('./dal/ThreadMessageDB');
+var EmailVerificationDB = require('./dal/EmailVerificationDB');
+var ForgotPasswordDB = require('./dal/ForgotPasswordDB');
 
 function DBConnection() {}
 
@@ -27,6 +31,10 @@ DBConnection.Init = function(url, done) {
         ProductDB.Init(DBConnection.connection);
         CategoryDB.Init(DBConnection.connection);
         TransactionDB.Init(DBConnection.connection);
+        ThreadListDB.Init(DBConnection.connection);
+        ThreadMessageDB.Init(DBConnection.connection);
+        EmailVerificationDB.Init(DBConnection.connection);
+        ForgotPasswordDB.Init(DBConnection.connection);
         done();
     });
 };

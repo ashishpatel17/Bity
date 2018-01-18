@@ -1,15 +1,9 @@
 var config = require('../../../config')();
 var UserValidation = new (require('../../../libs/userValidation'))();
-var jwt = require('jsonwebtoken');
-var Mongoose = require('mongoose').Mongoose;
-var mongoose = new Mongoose();
 var _ = require('underscore');
-var bcrypt = require('bcrypt');
-var fs = require('fs');
-var path = require('path');
-var async = require('async');
+var genericUtils = new (require('../../../libs/genericFunctions.js'))();
 
-function UserReviewController(userAuthDB,userProfileDB,userLoginDB,TransactionDB) {
+function UserReviewController(userAuthDB,UserProfileDB,UserLoginDB,TransactionDB) {
   /*
     Controller function to post User Review
   */
@@ -18,36 +12,80 @@ function UserReviewController(userAuthDB,userProfileDB,userLoginDB,TransactionDB
     req.body["userId"] && typeof req.body["userId"] !== 'undefined' &&
     req.body["rating"] && typeof req.body["rating"] !== 'undefined' &&
     req.body["comment"] && typeof req.body["comment"] !== 'undefined'){
-      userProfileDB.getUserById(req.body["userId"],function(err,result){
+      UserProfileDB.getUserById(req.body["userId"],function(err,result){
         if(err){
-          res.status(400);
-          res.send({"Message": "Unable to find user"});
+          res.status(500);
+          res.send({"Message": "Unable to fetch data","statusCode":500});
         }else{
           if(result){
             result.sellerReview.push({
               userId : req.body["userId"],
               comment : req.body["comment"],
-              rating : parseInt(req.body["rating"])
+              rating : parseFloat(req.body["rating"]),
+              postDate : new Date()
             })
             result.sellerRating = calculateAverageRating(result.sellerReview);
-            userProfileDB.updateUserProfile(result,function(err){
+            UserProfileDB.updateUserProfile(result,function(err){
               if(err){
-                res.status(500);
-                res.send({"Message": "Fail to add user review"});
+                res.status(601);
+                res.send({"Message": "Fail to add user review","statusCode":601});
               }else{
                 res.status(200);
-                res.send({"Message": "Review successfully posted"});
+                res.send({"Message": "Review successfully posted","statusCode":200});
               }
             })
           }else{
-            res.status(400);
-            res.send({"Message": "User not found"});
+            res.status(408);
+            res.send({"Message": "User not found","statusCode":408});
           }
         }
       })
     }else{
       res.status(400);
-      res.send({"Message": "Invalid Parameters"});
+      res.send({"Message": "Invalid request","statusCode":400});
+    }
+  }
+
+  this.getUserReview = function(req,res){
+    if(req && typeof req !== 'undefined' && req.params && typeof req.params !== 'undefined' &&
+    req.params["userId"] && typeof req.params["userId"] !== 'undefined'){
+      UserProfileDB.getUserById(req.params["userId"],function(err,result){
+        if(err){
+          res.status(500);
+          res.send({"Message": "Unable to fetch data","statusCode":500});
+        }else{
+          if(result){
+            var totalData = result.sellerReview.length;
+            var userReview = _.sortBy(result.sellerReview,'postDate').reverse();
+            if(req.params['pageSize'] && req.params['pageSize']!=null && req.params['pageSize']!="" && req.params['pageNumber'] && req.params['pageNumber']!=null && req.params['pageNumber']!=""){
+              var pageNumber = req.params['pageNumber'];
+              var pageSize = req.params['pageSize'];
+              userReview = userReview.slice(genericUtils.GetStartIndexForPagination(pageSize,pageNumber),genericUtils.GetEndIndexForPagination(pageSize,pageNumber,userReview.length));
+            }
+            var finalResponse = [];
+            userReview.forEach(function(urev){
+              var rDate = new Date(urev.postDate);
+              rDate = rDate.getDate()+"/"+parseInt(rDate.getUTCMonth()+1)+"/"+rDate.getFullYear()
+              finalResponse.push({
+                date : rDate
+                ,message : urev.comment
+                ,rating : urev.rating.toFixed(1)
+              })
+            })
+            var pageNumber = parseInt(req.params['pageNumber']);
+            var pageSize = parseInt(req.params['pageSize']);
+            var totalPage = Math.ceil(totalData/pageSize);
+            res.status(200);
+            res.send({totalData:totalData,totalPage:totalPage,curPage:pageNumber,data:finalResponse,statusCode:200});
+          }else{
+            res.status(408);
+            res.send({"Message": "User not found","statusCode":408});
+          }
+        }
+      })
+    }else{
+      res.status(400);
+      res.send({"Message": "Invalid request","statusCode":400});
     }
   }
 
@@ -59,19 +97,17 @@ function UserReviewController(userAuthDB,userProfileDB,userLoginDB,TransactionDB
     var totalRating = 0;
     var distRating = Object.keys(ratingGroup);
     distRating.forEach(function(rating){
-      totalRating += parseInt(rating);
-      denominator =  denominator+(parseInt(rating)*ratingGroup[rating].length);
+      totalRating += parseFloat(rating);
+      denominator =  denominator+(parseFloat(rating)*ratingGroup[rating].length);
     })
-    var averageRating = denominator/totalRating;
-    var float = averageRating - Math.floor(averageRating);
-    if(float>=0.5){
-      averageRating = Math.ceil(averageRating);
-    }else{
-      averageRating = Math.floor(averageRating);
-    }
+    var averageRating = parseFloat((denominator/totalRating).toFixed(1));
+    // if(float>=0.5){
+    //   averageRating = Math.ceil(averageRating);
+    // }else{
+    //   averageRating = Math.floor(averageRating);
+    // }
     return averageRating;
   }
-
 }
 
 module.exports = UserReviewController;

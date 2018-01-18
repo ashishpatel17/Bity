@@ -20,7 +20,7 @@ UserProfileDB.Init = function(con) {
                 , facebookId: String
                 , profilePicture: String
                 , address: String
-                , location: String
+                , location: [Number]
                 , phoneNumber: String
                 , activeStatus: Boolean
                 , userType: String
@@ -29,16 +29,28 @@ UserProfileDB.Init = function(con) {
                 , sellerReview : [{
                   userId : Schema.ObjectId,
                   comment : String,
-                  rating : Number
+                  rating : Number,
+                  postDate : Date
                 }]
                 , following: [Schema.ObjectId]
                 , wishList : [Schema.ObjectId]
                 , lastUpdateDate : Date
                 , createDate : Date
+                , isEmailVerified : Boolean
             }, {collection: collection});
+            this.UserProfileSchema.index({ location: '2d' });
             this.UserProfileModel = con.model(collection, this.UserProfileSchema);
         }
     }
+};
+
+UserProfileDB.getMultipleUser = function (userId, callback){
+    this.UserProfileModel.find({_id:{$in:userId}}, function (err, result){
+        if (err) callback(err);
+        else {
+            callback(null, result);
+        }
+    });
 };
 
 UserProfileDB.getUserFollowers = function (userId, callback){
@@ -87,9 +99,9 @@ UserProfileDB.getUserById = function (id, callback){
 };
 
 UserProfileDB.insertUserProfile = function (obj, callback){
-    this.UserProfileModel.collection.insert(obj,{setDefaultsOnInsert: true}, function (err){
-        if (err) callback(err);
-        else callback(null);
+    this.UserProfileModel.collection.insert(obj,{setDefaultsOnInsert: true}, function (err,res){
+        if (err) callback(err,null);
+        else callback(null,res);
     });
 };
 
@@ -106,5 +118,32 @@ UserProfileDB.deleteUserProfileByEmail = function (email, callback){
         else callback(null);
     });
 };
+
+UserProfileDB.addUserWishList = function (userId, productId, callback){
+  this.UserProfileModel.findOneAndUpdate({
+          _id: userId
+      }, {$addToSet:{wishList:productId},$set:{ LastUpdatedDate: new Date()}}, {new: true}, function (err, obj) {
+          if (err) callback(err, null);
+          else callback(null, obj);
+  });
+}
+
+UserProfileDB.deleteFromWishList = function (userId, productId, callback){
+  this.UserProfileModel.findOneAndUpdate({
+          _id: userId
+      }, {$pull:{wishList:productId},$set:{ LastUpdatedDate: new Date()}}, {new: true}, function (err, obj) {
+          if (err) callback(err, null);
+          else callback(null, obj);
+  });
+}
+
+UserProfileDB.updateEmailVerificationStatus = function (userId, status, callback){
+  this.UserProfileModel.findOneAndUpdate({
+          _id: userId
+      }, {isEmailVerified : status}, {new: true}, function (err, obj) {
+          if (err) callback(err, null);
+          else callback(null, obj);
+  });
+}
 
 module.exports = UserProfileDB;

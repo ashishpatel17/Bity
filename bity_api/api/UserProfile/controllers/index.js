@@ -1,15 +1,14 @@
 var config = require('../../../config')();
 var UserValidation = new (require('../../../libs/userValidation'))();
-var jwt = require('jsonwebtoken');
-var Mongoose = require('mongoose').Mongoose;
-var mongoose = new Mongoose();
 var _ = require('underscore');
 var bcrypt = require('bcrypt');
 var fs = require('fs');
 var path = require('path');
 var async = require('async');
+var guid = require('guid');
+var nodemailer = require('nodemailer');
 
-function UserProfileController(userAuthDB,userProfileDB,userLoginDB,TransactionDB) {
+function UserProfileController(userAuthDB,UserProfileDB,UserLoginDB,TransactionDB,ForgotPasswordDB,EmailVerificationDB) {
   /*
     Controller function to get user profile details
   */
@@ -18,15 +17,15 @@ function UserProfileController(userAuthDB,userProfileDB,userLoginDB,TransactionD
       getUserProfleDetails(req,false,function(err,profResult){
         if(err){
           res.status(err.errorCode);
-          res.send({"Message": err.Message});
+          res.send({"Message": err.Message,statusCode:err.errorCode});
         }else{
           res.status(200);
-          res.send(profResult);
+          res.send({data:profResult,statusCode:200});
         }
       })
     }else{
       res.status(400);
-      res.send({"Message": "Invalid Parameters"});
+      res.send({"Message": "Invalid request","statusCode":400});
     }
   }
 
@@ -38,15 +37,15 @@ function UserProfileController(userAuthDB,userProfileDB,userLoginDB,TransactionD
       getUserProfleDetails(req,true,function(err,profResult){
         if(err){
           res.status(err.errorCode);
-          res.send({"Message": err.Message});
+          res.send({"Message": err.Message,statusCode:err.errorCode});
         }else{
           res.status(200);
-          res.send(profResult);
+          res.send({data:profResult,statusCode:200});
         }
       })
     }else{
       res.status(400);
-      res.send({"Message": "Invalid Parameters"});
+      res.send({"Message": "Invalid request","statusCode":400});
     }
   }
 
@@ -54,22 +53,32 @@ function UserProfileController(userAuthDB,userProfileDB,userLoginDB,TransactionD
     Controller function to edit user profile
   */
   this.editProfile = function(req, res){
-    if(req && typeof req !== 'undefined' && req.body && typeof req.body !== 'undefined' && req.body["email"] && typeof req.body["email"] !== 'undefined'){
-      userProfileDB.getUserByEmail(req.body['email'],function(err,result){
+    if(req && typeof req !== 'undefined' &&
+      req.body && typeof req.body !== 'undefined' &&
+      req.params["userId"] && typeof req.params["userId"] !== 'undefined'){
+      UserProfileDB.getUserById(req.params["userId"],function(err,result){
         if(err){
           res.status(500);
-          res.send({"Message": "Unable to identify user"});
+          res.send({"Message": "Unable to fetch user data","statusCode":500});
         }else{
           if(result){
-            result.userName = req.body["user_name"]==undefined ? result.userName : req.body["user_name"]
-            result.fullName = req.body["full_name"]==undefined ? result.fullName : req.body["full_name"]
+            result.userName = req.body["userName"]==undefined ? result.userName : req.body["userName"]
+            result.fullName = req.body["fullName"]==undefined ? result.fullName : req.body["fullName"]
 
             if(req.body["address"]!=undefined && req.body["address"]!=null){
               result["address"] = req.body["address"];
             }
 
-            if(req.files!=null && req.files["profile_pic"]!=undefined){
-              var fileType = req.files.profile_pic.mimetype;
+            if(req.body["lat"]!=undefined && req.body["lat"]!=null && req.body["long"]!=undefined && req.body["long"]!=null){
+              result["location"] = [req.body["lat"],req.body["long"]];
+            }
+
+            if(req.body["phoneNumber"]!=undefined && req.body["phoneNumber"]!=null){
+              result["phoneNumber"] = req.body["phoneNumber"];
+            }
+
+            if(req.files!=null && req.files["profilePic"]!=undefined){
+              var fileType = req.files.profilePic.mimetype;
               if(fileType=="image/png" || fileType=="image/jpeg"){
                 var oldFileName = "";
                 if(result.profilePicture && result.profilePicture!=null && result.profilePicture!=""){
@@ -79,49 +88,49 @@ function UserProfileController(userAuthDB,userProfileDB,userLoginDB,TransactionD
                 var date = new Date();
                 var fileName = result.fullName.replace(/ /g,'')+"_"+date.getTime()+"."+fileType.split("/")[1];
                 result["profilePicture"] = fileName;
-                fs.writeFile(filePath+fileName,req.files.profile_pic.data,"binary",function(err) {
+                fs.writeFile(filePath+fileName,req.files.profilePic.data,"binary",function(err) {
                   if(err){
-                    res.status(400);
-                    res.send({"Message": "unable to update user profile"});
+                    res.status(601);
+                    res.send({"Message": "unable to update user profile","statusCode":601});
                   }else{
-                    userProfileDB.updateUserProfile(result,function(err){
+                    UserProfileDB.updateUserProfile(result,function(err){
                       if(err){
-                        res.status(500);
-                        res.send({"Message": "Failed to update user"});
+                        res.status(601);
+                        res.send({"Message": "Failed to update user profile","statusCode":601});
                       }else{
                         if(oldFileName!=""){
                           fs.unlink(filePath+"/"+oldFileName,function(err){});
                         }
                         res.status(200);
-                        res.send({"Message": "User successfully updated"});
+                        res.send({"Message": "User successfully updated","statusCode":200});
                       }
                     })
                   }
                 })
               }else{
-                res.status(400);
-                res.send({"Message": "Invalid image format only supports png or jpeg"});
+                res.status(601);
+                res.send({"Message": "Invalid image format only supports png or jpeg","statusCode":601});
               }
             }else{
-              userProfileDB.updateUserProfile(result,function(err){
+              UserProfileDB.updateUserProfile(result,function(err){
                 if(err){
-                  res.status(500);
-                  res.send({"Message": "Failed to update user"});
+                  res.status(601);
+                  res.send({"Message": "Failed to update user","statusCode":601});
                 }else{
                   res.status(200);
-                  res.send({"Message": "User successfully updated"});
+                  res.send({"Message": "User successfully updated","statusCode":200});
                 }
               })
             }
           }else{
-            res.status(500);
-            res.send({"Message": "User not found"});
+            res.status(408);
+            res.send({"Message": "User not found","statusCode":408});
           }
         }
       })
     }else{
       res.status(400);
-      res.send({"Message": "Invalid Parameters"});
+      res.send({"Message": "Invalid request","statusCode":400});
     }
   }
 
@@ -130,47 +139,161 @@ function UserProfileController(userAuthDB,userProfileDB,userLoginDB,TransactionD
   */
   this.changePassword = function(req,res){
     if(req && typeof req !== 'undefined' && req.body && typeof req.body !== 'undefined' &&
-     req.body["old_password"] && typeof req.body["old_password"] !== 'undefined' &&
-     req.body["new_password"] && typeof req.body["new_password"] !== 'undefined'){
-       userProfileDB.getUserByEmail(req.body['email'],function(err,userRes){
+     req.body["email"] && typeof req.body["email"] !== 'undefined' &&
+     req.body["oldPassword"] && typeof req.body["oldPassword"] !== 'undefined' &&
+     req.body["newPassword"] && typeof req.body["newPassword"] !== 'undefined'){
+       UserProfileDB.getUserById(req.params['userId'],function(err,userRes){
          if(err){
-           res.status(500);
-           res.send({"Message": "Unable to find user"});
+            res.status(500);
+            res.send({"Message": "unable to fetch data","statusCode":500});
          }else{
            if(userRes && userRes.email){
-              userLoginDB.getLoginByEmail(req.body['email'],function(err,loginRes){
+              UserLoginDB.getLoginByEmail(userRes.email,function(err,loginRes){
                 if(err){
-                  res.status(500);
-                  res.send({"Message": "Unable to find user"});
+                   res.status(501);
+                   res.send({"Message": "unable to find login details","statusCode":501});
                 }else{
                   if(loginRes && loginRes.email){
-                    if(bcrypt.compareSync(req.body['old_password'], loginRes.password)){
-                      var newPassword = bcrypt.hashSync(req.body['new_password'],10);
-                      userLoginDB.changeUserpassword(req.body['email'],newPassword,function(err,upRes){
+                    if(bcrypt.compareSync(req.body['oldPassword'], loginRes.password)){
+                      var newPassword = bcrypt.hashSync(req.body['newPassword'],10);
+                      UserLoginDB.changeUserpassword(req.body['email'],newPassword,function(err,upRes){
                         if(err){
-                          res.status(500);
-                          res.send({"Message": "Failed to update password"});
+                          res.status(601);
+                          res.send({"Message": "Failed to update password","statusCode":601});
                         }else{
                           res.status(200);
-                          res.send({"Message": "Password sucessfully changed"});
+                          res.send({"Message": "Password sucessfully changed","statusCode":200});
                         }
                       })
                     }else{
-                      res.status(403);
-                      res.send({"Message": "Invalid existing password"});
+                      res.status(405);
+                      res.send({"Message": "Invalid existing password","statusCode":405});
                     }
                   }else{
-                    res.status(500);
-                    res.send({"Message": "Unable to find user"});
+                    res.status(502);
+                    res.send({"Message": "Unable to find user login data","statusCode":502});
                   }
                 }
               })
            }else{
-             res.status(500);
-             res.send({"Message": "User not exist"});
+             res.status(408);
+             res.send({"Message": "User not found","statusCode":408});
            }
          }
        })
+    }else{
+      res.status(400);
+      res.send({"Message": "Invalid request","statusCode":400});
+    }
+  }
+
+  this.forgotPassword = function(req,res){
+    if(req && typeof req !== 'undefined' &&
+     req.params && typeof req.params !== 'undefined' &&
+     req.params["userEmail"] && typeof req.params["userEmail"] !== 'undefined'){
+       UserProfileDB.getUserByEmail(req.params['userEmail'],function(err,userResult){
+         if(err){
+           res.status(500);
+           res.send({"Message": "data not found","statusCode":500});
+         }else{
+           if(userResult){
+             var code = guid.raw() +"_"+ userResult._id;
+             var insCode = {
+               userId: userResult._id
+               , requestCode : code
+               , status : false
+               , createdDate : new Date()
+             }
+             ForgotPasswordDB.insertForgotPassword(insCode,function(err,result){
+               if(err){
+                 res.status(601);
+                 res.send({"Message": "unable to request to change password","statusCode":601});
+               }else{
+
+                     var transporter = nodemailer.createTransport({
+                       service: 'gmail',
+                       auth: {
+                         user: config.senderEmail,
+                         pass: config.password
+                       }
+                     })
+                     var verificationUrl = "http://"+req.headers.host+"/resetPasswordRequest?verificationCode="+code;
+                     var mailOptions = {
+                       from: config.senderEmail,
+                       to: userResult['email'],
+                       subject: 'Change password request from Bityo',
+                       html : "<p>Click below URL to change your password</p><p><a style='color:rgb(0, 0, 255)' href='"+verificationUrl+"'>"+verificationUrl+"</a></p>"
+                     };
+                     transporter.sendMail(mailOptions, function(error, info){
+                       if(err){
+                           res.status(601);
+                           res.send({"Message": "unable to send verification mail","statusCode":601});
+                       }else{
+                         res.status(200);
+                         res.send({"Message": "email successfully send","statusCode":200});
+                       }
+                     });
+
+               }
+             })
+           }else{
+             res.status(500);
+             res.send({"Message": "email not found","statusCode":500});
+           }
+         }
+       })
+    }else{
+      res.status(400);
+      res.send({"Message": "Invalid request","statusCode":400});
+    }
+  }
+
+  this.resetPasswordRequest = function(req,res){
+    var resetPasswordUrl = "http://"+req.headers.host+"/api/resetPassword";
+    res.render('resetPasswordRequest', {apuUrl:resetPasswordUrl});
+  }
+
+  this.resetPassword = function(req,res){
+    if(req && typeof req !== 'undefined' &&
+       req.body && typeof req.body !== 'undefined' &&
+       req.body["requestId"] && typeof req.body["requestId"] !== 'undefined' &&
+       req.body["newPassword"] && typeof req.body["newPassword"] !== 'undefined'){
+         var reqId = req.body["requestId"];
+         var userId = req.body["requestId"].split("_")[1];
+         UserProfileDB.getUserById(userId,function(err,usrResult){
+           if(err){
+             res.status(400);
+             res.send({Message:"Unable to change password",statusCode:400});
+           }else{
+             if(usrResult){
+               ForgotPasswordDB.updateStatus(reqId,userId,function(err,result){
+                 if(err){
+                   res.status(400);
+                   res.send({Message:"Unable to change password",statusCode:400});
+                 }else{
+                   if(result){
+                     var newPassword = bcrypt.hashSync(req.body['newPassword'],10);
+                     UserLoginDB.changeUserpassword(usrResult.email,newPassword,function(err,upRes){
+                       if(err){
+                         res.status(500);
+                         res.send({"Message": "Failed to reset password",statusCode:500});
+                       }else{
+                         res.status(200);
+                         res.send({"Message": "Password sucessfully changed",statusCode:200});
+                       }
+                     })
+                   }else{
+                     res.status(400);
+                     res.send({Message:"Invalid request to change password",statusCode:400});
+                   }
+                 }
+               })
+             }else{
+               res.status(400);
+               res.send({Message:"Invalid request to change password",statusCode:400});
+             }
+           }
+         })
     }else{
       res.status(400);
       res.send({"Message": "Invalid Parameters"});
@@ -181,35 +304,38 @@ function UserProfileController(userAuthDB,userProfileDB,userLoginDB,TransactionD
     controller function to add follower of user
   */
   this.followSeller = function(req,res){
-    if(req && typeof req !== 'undefined' && req.params && typeof req.params !== 'undefined' && req.params["sellerId"] && typeof req.params["sellerId"] !== 'undefined'){
-      UserValidation.getLoginInfo(req,function(err,loginRes){
+    if(req && typeof req !== 'undefined' && req.params && typeof req.params !== 'undefined' &&
+      req.params["userId"] && typeof req.params["userId"] !== 'undefined' &&
+      req.params["sellerId"] && typeof req.params["sellerId"] !== 'undefined'){
+      UserProfileDB.getUserById(req.params['userId'],function(err,loginRes){
         if(err){
-          callback({errorCode:500,Message:"unauthorized request"},null);
+          res.status(500);
+          res.send({"Message": "Unable to find user","statusCode":500});
         }else{
-          userProfileDB.getUserById(req.params["sellerId"],function(err,result){
+          UserProfileDB.getUserById(req.params["sellerId"],function(err,result){
             if(err){
-              res.status(500);
-              res.send({"Message": "Unable to find user"});
+              res.status(501);
+              res.send({"Message": "Unable to find seller","statusCode":501});
             }else{
               if(result){
                 if(result.following.indexOf(loginRes.UserId)==-1){
                   result.following.push(loginRes.UserId);
-                  userProfileDB.updateUserProfile(result,function(err){
+                  UserProfileDB.updateUserProfile(result,function(err){
                     if(err){
-                      res.status(500);
-                      res.send({"Message": "Fail to follow this seller"});
+                      res.status(601);
+                      res.send({"Message": "unable to follow this seller","statusCode":601});
                     }else{
                       res.status(200);
-                      res.send({"Message": "successfully followed"});
+                      res.send({"Message": "successfully followed","statusCode":200});
                     }
                   })
                 }else{
-                  res.status(500);
-                  res.send({"Message": "You are allready following this User"});
+                  res.status(602);
+                  res.send({"Message": "You are allready following this User","statusCode":602});
                 }
               }else{
-                res.status(400);
-                res.send({"Message": "User not found"});
+                res.status(408);
+                res.send({"Message": "User not found","statusCode":408});
               }
             }
           })
@@ -217,56 +343,40 @@ function UserProfileController(userAuthDB,userProfileDB,userLoginDB,TransactionD
       })
     }else{
       res.status(400);
-      res.send({"Message": "Invalid Parameters"});
+      res.send({"Message": "Invalid Parameters","statusCode":400});
     }
   }
-
 
   var getUserProfleDetails = function(req,IsUserSpecific,callback){
     async.waterfall([
       function(callback){
-        UserValidation.getLoginInfo(req,function(err,loginRes){
+        UserProfileDB.getUserById(req.params['userId'],function(err,usrResult){
           if(err){
-            callback({errorCode:500,Message:"unauthorized request"},null);
-          }else{
-            if(!IsUserSpecific && loginRes){
-              callback(null,loginRes);
-            }else if(IsUserSpecific && loginRes && loginRes.UserId == req.params['userId']){
-              callback(null,loginRes);
-            }else{
-              callback({errorCode:500,Message:"unauthorized request"},null);
-            }
-          }
-        })
-      },
-      function(loginRes,callback){
-        userProfileDB.getUserById(req.params['userId'],function(err,usrResult){
-          if(err){
-            callback({errorCode:500,Message:"Unable to find user profile details"},null);
+            callback({errorCode:500,Message:"Unable to fetch user profile data"},null);
           }else{
             if(usrResult){
-              callback(null,loginRes,usrResult);
+              callback(null,usrResult);
             }else{
-              callback({errorCode:500,Message:"User profile details not found"},null);
+              callback({errorCode:408,Message:"User profile not found"},null);
             }
           }
         })
       },
-      function(loginRes,usrResult,callback){
-        userProfileDB.getUserFollowers(req.params['userId'],function(err,followResult){
+      function(usrResult,callback){
+        UserProfileDB.getUserFollowers(req.params['userId'],function(err,followResult){
           if(err){
-            callback({errorCode:500,Message:"Unable to find user profile details"},null);
+            callback({errorCode:501,Message:"Unable to fetch user followers"},null);
           }else{
-            callback(null,loginRes,usrResult,followResult);
+            callback(null,usrResult,followResult);
           }
         })
       },
-      function(loginRes,usrResult,followResult,callback){
-        TransactionDB.getUserAllTransaction(loginRes.userId,function(err,tranResult){
+      function(usrResult,followResult,callback){
+        TransactionDB.getUserAllTransaction(usrResult._id,function(err,tranResult){
           if(err){
-            callback({errorCode:500,Message:"Unable to find user transaction details"},null);
+            callback({errorCode:502,Message:"Unable to fetch user transaction"},null);
           }else{
-            var profilePicPath = req.headers.host+"/"+config.profilePicturePublicPath;
+            var profilePicPath = "http://"+req.headers.host+"/"+config.profilePicturePublicPath;
             var responseObj = {
               fullName: usrResult.fullName
               , userName: usrResult.userName
@@ -279,7 +389,7 @@ function UserProfileController(userAuthDB,userProfileDB,userLoginDB,TransactionD
               , activeStatus: usrResult.activeStatus
               , userType: usrResult.userType
               , bitcoinAddress: usrResult.bitcoinAddress
-              , sellerRating: usrResult.sellerRating
+              , sellerRating: usrResult.sellerRating.toFixed(1)
               , following: usrResult.following.length
               , follower: followResult.length
               , transactions: tranResult.length
