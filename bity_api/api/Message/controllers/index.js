@@ -33,13 +33,14 @@ function MessageController(UserProfileDB,ThreadListDB,ThreadMessageDB) {
                   result.forEach(function(rec){
                     var sender = rec.lastMessage.senderId;
                     var senderProfile = _.find(rec.participants,function(rec){if(sender.toString().toLowerCase() == rec.userId.toString().toLowerCase()){ return rec }});
-
+                    var lastDate = new Date(rec.lastMessage.dateTime);
+                    var strDate = lastDate.getDate()+"/"+(lastDate.getUTCMonth()+1)+"/"+lastDate.getFullYear() +"  "+ lastDate.getHours()+":"+lastDate.getMinutes()+":"+lastDate.getSeconds();
                     finalRes.push({
                       threadId : rec._id,
                       threadName : senderProfile.userName,
                       threadImage : senderProfile.userProfilePic?profilePicPath+senderProfile.userProfilePic:defaultProfileImg,
                       lastMessage : rec.lastMessage.message,
-                      lastMessageTime : rec.lastMessage.dateTime
+                      lastMessageTime : strDate
                     })
                   })
                   var pageNumber = parseInt(req.params['pageNumber']);
@@ -62,7 +63,7 @@ function MessageController(UserProfileDB,ThreadListDB,ThreadMessageDB) {
     if(req && typeof req !== 'undefined' && req.query && typeof req.query !== 'undefined' &&
        req.query["pageSize"] && req.query["pageSize"] !== 'undefined' &&
        req.query["pageNumber"] && req.query["pageNumber"] !== 'undefined'){
-       if(req.query["threadId"] && req.query["senderId"] !== 'undefined'){
+       if(req.query["threadId"] && req.query["threadId"] !== 'undefined'){
          ThreadListDB.getThreadById(req.query["threadId"],function(err,tResult){
            if(err){
              res.status(501);
@@ -124,13 +125,15 @@ function MessageController(UserProfileDB,ThreadListDB,ThreadMessageDB) {
                 var profilePicPath = "http://"+req.headers.host+"/"+config.profilePicturePublicPath;
                 var defaultProfileImg = profilePicPath+config.profileDefaultImage
                 var sender = userResult.filter(function(rec){ if (rec._id.toString().toLowerCase() == msg.sender.userId.toString().toLowerCase()) return rec })[0];
+                var lastDate = new Date(msg.dateTime);
+                    var strDate = lastDate.getDate()+"/"+(lastDate.getUTCMonth()+1)+"/"+lastDate.getFullYear() +"  "+ lastDate.getHours()+":"+lastDate.getMinutes()+":"+lastDate.getSeconds();
 
                 finalRes.push({
                     senderName : msg.sender.userName
                   , senderEmail : msg.sender.userEmail
                   , senderProfilePic : sender.profilePicture?profilePicPath+sender.profilePicture:defaultProfileImg
                   , message : msg.message
-                  , dateTime : msg.dateTime
+                  , dateTime : strDate
                  })
               })
               var pageNumber = parseInt(req.query['pageNumber']);
@@ -152,10 +155,10 @@ function MessageController(UserProfileDB,ThreadListDB,ThreadMessageDB) {
     if(req && typeof req !== 'undefined' &&
      req.body && typeof req.body !== 'undefined' &&
      req.body["senderId"] && typeof req.body["senderId"] !== 'undefined' &&
-     req.body["reciverId"] && typeof req.body["reciverId"] !== 'undefined' &&
+     // req.body["reciverId"] && typeof req.body["reciverId"] !== 'undefined' &&
      req.body["messageBody"] && typeof req.body["messageBody"] !== 'undefined'){
        var sender = req.body["senderId"];
-       var reciver = req.body["reciverId"];
+       var reciver = "";
        async.waterfall([
          function(callback){
           UserProfileDB.getUserById(req.body["senderId"],function(err,loginRes){
@@ -171,20 +174,35 @@ function MessageController(UserProfileDB,ThreadListDB,ThreadMessageDB) {
             })
           },
           function(loginRes,callback){
-            if(req.body["threadId"] != undefined && req.body["threadId"]!=""){
+            if(req.body["senderId"] && req.body["senderId"] !== 'undefined' && req.body["threadId"] && req.body["threadId"] !== 'undefined'){
               ThreadListDB.getThreadById(req.body["threadId"],function(err,threadRes){
                 if(err){
                     callback({errorCode:501,Message:"unable to find thread"},null);
                 }else{
-                    callback(null,threadRes)
+                    reciver = "";
+                    threadRes.participants.forEach(function(e){
+                      if(e.userId.toString().toLowerCase() != req.body["senderId"].toString().toLowerCase())
+                      reciver = e.userId;
+                    });
+                    callback(null,threadRes);
+                }
+              })
+            }else if(req.body["senderId"] && req.body["senderId"] !== 'undefined' && req.body["reciverId"] && req.body["reciverId"] !== 'undefined'){
+              ThreadListDB.getThreadByParticipant([req.body["reciverId"],req.body["senderId"]],function(err,tResult){
+                if(err){
+                  callback({errorCode:502,Message:"unable to get thread"},null);
+                }else{
+                  reciver = req.body["reciverId"];
+                  callback(null,tResult)
                 }
               })
             }else{
-              callback(null,undefined);
+              callback({errorCode:400,Message:"Invalid request"},null);
             }
           },
           function(threadRes,callback){
-            UserProfileDB.getMultipleUser([reciver,sender],function(err,userResult){
+            var users = threadRes.participants.map(function(e){return e.userId});
+            UserProfileDB.getMultipleUser(users,function(err,userResult){
               if(err){
                 callback({errorCode:503,Message:"unable to get user data"},null);
               }else{
@@ -196,49 +214,43 @@ function MessageController(UserProfileDB,ThreadListDB,ThreadMessageDB) {
             if(threadRes){
               callback(null,threadRes,userResult)
             }else{
-              ThreadListDB.getThreadByParticipant([reciver,sender],function(err,tResult){
-                if(err){
-                  callback({errorCode:502,Message:"unable to get thread"},null);
-                }else{
-                  if(tResult){
-                    callback(null,tResult,userResult)
-                  }else{
-                        var reciverProfile = _.find(userResult,function(rec){if(rec._id.toString().toLowerCase() == reciver.toLowerCase()){ return rec }})
-                        var senderProfile = _.find(userResult,function(rec){if(rec._id.toString().toLowerCase() == sender.toLowerCase()){ return rec }})
-                        if(reciverProfile && senderProfile){
-                          var insObj = {
-                            participants : [{
-                              userId : reciverProfile._id,
-                              userName : reciverProfile.fullName,
-                              userEmail : reciverProfile.email,
-                              userProfilePic : reciverProfile.profilePicture
-                            },{
-                              userId : senderProfile._id,
-                              userName : senderProfile.fullName,
-                              userEmail : senderProfile.email,
-                              userProfilePic : senderProfile.profilePicture
-                            }]
-                          }
-                          ThreadListDB.insertThread(insObj,function(err,insResult){
-                            if(err){
-                              callback({errorCode:601,Message:"unable to save thread"},null);
-                            }else{
-                              callback(null,insResult.ops[0],userResult);
-                            }
-                          })
-                        }else{
-                          callback({errorCode:408,Message:"user not found"},null);
-                        }
-                    //   }
-                    // })
+                var reciverProfile = _.find(userResult,function(rec){if(rec._id.toString().toLowerCase() == reciver.toLowerCase()){ return rec }})
+                var senderProfile = _.find(userResult,function(rec){if(rec._id.toString().toLowerCase() == sender.toLowerCase()){ return rec }})
+                if(reciverProfile && senderProfile){
+                  var insObj = {
+                    participants : [{
+                      userId : reciverProfile._id,
+                      userName : reciverProfile.fullName,
+                      userEmail : reciverProfile.email,
+                      userProfilePic : reciverProfile.profilePicture
+                    },{
+                      userId : senderProfile._id,
+                      userName : senderProfile.fullName,
+                      userEmail : senderProfile.email,
+                      userProfilePic : senderProfile.profilePicture
+                    }]
                   }
+                  ThreadListDB.insertThread(insObj,function(err,insResult){
+                    if(err){
+                      callback({errorCode:601,Message:"unable to save thread"},null);
+                    }else{
+                      callback(null,insResult.ops[0],userResult);
+                    }
+                  })
+                }else{
+                  callback({errorCode:408,Message:"user not found"},null);
                 }
-              })
             }
           },
           function(threadRes,userResult,callback){
-            var reciver = _.find(userResult,function(rec){if(rec._id.toString().toLowerCase() == req.body["reciverId"].toString().toLowerCase()){ return rec }})
-            var sender = _.find(userResult,function(rec){if(rec._id.toString().toLowerCase() == req.body["senderId"].toString().toLowerCase()){ return rec }})
+            reciver = "";
+            threadRes.participants.forEach(function(e){
+              if(e.userId.toString().toLowerCase() != req.body["senderId"].toString().toLowerCase())
+              reciver = e.userId;
+            });
+            sender = req.body["senderId"];
+            var reciver = _.find(userResult,function(rec){ if(rec._id.toString().toLowerCase() == reciver.toString().toLowerCase()){ return rec }})
+            var sender = _.find(userResult,function(rec){if(rec._id.toString().toLowerCase() == sender.toString().toLowerCase()){ return rec }})
             // var sender = _.find(threadRes.participants,function(rec){ if(rec.userId.toString().toLowerCase() == req.body["senderId"].toString()) return rec });
             var insObj = {
               sender: {
@@ -255,13 +267,19 @@ function MessageController(UserProfileDB,ThreadListDB,ThreadMessageDB) {
               if(err){
                 callback({errorCode:601,Message:"unable to save message"},null);
               }else{
-                callback(null,result.ops[0],userResult);
+                callback(null,threadRes,result.ops[0],userResult);
               }
             })
           },
-          function(messageRes,userResult,callback){
-            var reciver = _.find(userResult,function(rec){if(rec._id.toString().toLowerCase() == req.body["reciverId"].toString().toLowerCase()){ return rec }})
-            var sender = _.find(userResult,function(rec){if(rec._id.toString().toLowerCase() == req.body["senderId"].toString().toLowerCase()){ return rec }})
+          function(threadRes,messageRes,userResult,callback){
+            reciver = "";
+            threadRes.participants.forEach(function(e){
+              if(e.userId.toString().toLowerCase() != req.body["senderId"].toString().toLowerCase())
+              reciver = e.userId;
+            });
+            sender = req.body["senderId"];
+            var reciver = _.find(userResult,function(rec){if(rec._id.toString().toLowerCase() == reciver.toString().toLowerCase()){ return rec }})
+            var sender = _.find(userResult,function(rec){if(rec._id.toString().toLowerCase() == sender.toString().toLowerCase()){ return rec }})
             var insObj = {
               participants : [{
                 userId : reciver._id,

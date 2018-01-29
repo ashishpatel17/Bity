@@ -1,5 +1,5 @@
 var mongoose = require('mongoose');
-var UserAuthDB = require('./dal/UserAuthenticationDB.js');
+var UserAuthDB = require('./dal/UserAuthenticationDB');
 var UserLoginDB = require('./dal/UserLoginDB');
 var UserProfileDB = require('./dal/UserProfileDB');
 var ProductDB = require('./dal/ProductDB');

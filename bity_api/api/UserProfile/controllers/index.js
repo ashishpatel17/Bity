@@ -318,9 +318,9 @@ function UserProfileController(userAuthDB,UserProfileDB,UserLoginDB,TransactionD
               res.send({"Message": "Unable to find seller","statusCode":501});
             }else{
               if(result){
-                if(result.following.indexOf(loginRes.UserId)==-1){
-                  result.following.push(loginRes.UserId);
-                  UserProfileDB.updateUserProfile(result,function(err){
+                if(loginRes.following.indexOf(result._id)==-1){
+                  loginRes.following.push(result._id);
+                  UserProfileDB.updateUserProfile(loginRes,function(err){
                     if(err){
                       res.status(601);
                       res.send({"Message": "unable to follow this seller","statusCode":601});
@@ -333,6 +333,45 @@ function UserProfileController(userAuthDB,UserProfileDB,UserLoginDB,TransactionD
                   res.status(602);
                   res.send({"Message": "You are allready following this User","statusCode":602});
                 }
+              }else{
+                res.status(408);
+                res.send({"Message": "User not found","statusCode":408});
+              }
+            }
+          })
+        }
+      })
+    }else{
+      res.status(400);
+      res.send({"Message": "Invalid Parameters","statusCode":400});
+    }
+  }
+
+  this.unFollowSeller = function(req,res){
+    if(req && typeof req !== 'undefined' && req.params && typeof req.params !== 'undefined' &&
+      req.params["userId"] && typeof req.params["userId"] !== 'undefined' &&
+      req.params["sellerId"] && typeof req.params["sellerId"] !== 'undefined'){
+      UserProfileDB.getUserById(req.params['userId'],function(err,loginRes){
+        if(err){
+          res.status(500);
+          res.send({"Message": "Unable to find user","statusCode":500});
+        }else{
+          UserProfileDB.getUserById(req.params["sellerId"],function(err,result){
+            if(err){
+              res.status(501);
+              res.send({"Message": "Unable to find seller","statusCode":501});
+            }else{
+              if(result){
+                loginRes.following.splice(loginRes.following.indexOf(req.params["sellerId"]),1);
+                UserProfileDB.updateUserProfile(loginRes,function(err){
+                  if(err){
+                    res.status(601);
+                    res.send({"Message": "unable to unfollow this seller","statusCode":601});
+                  }else{
+                    res.status(200);
+                    res.send({"Message": "successfully unfollowed","statusCode":200});
+                  }
+                })
               }else{
                 res.status(408);
                 res.send({"Message": "User not found","statusCode":408});
@@ -389,7 +428,7 @@ function UserProfileController(userAuthDB,UserProfileDB,UserLoginDB,TransactionD
               , activeStatus: usrResult.activeStatus
               , userType: usrResult.userType
               , bitcoinAddress: usrResult.bitcoinAddress
-              , sellerRating: usrResult.sellerRating.toFixed(1)
+              , sellerRating: (usrResult.sellerRating!=undefined && usrResult.sellerRating!=null)?usrResult.sellerRating.toFixed(1):undefined
               , following: usrResult.following.length
               , follower: followResult.length
               , transactions: tranResult.length

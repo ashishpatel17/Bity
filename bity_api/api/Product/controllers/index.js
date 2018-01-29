@@ -5,10 +5,14 @@ var path = require('path');
 var genericUtils = new (require('../../../libs/genericFunctions.js'))();
 var async = require('async');
 var fs = require('fs');
+var mongoose = require('mongoose');
+var shortid = require('shortid');
 
 function UserProfileController(productDB,UserProfileDB,categoryDB) {
   this.getProductDetails = function(req,res){
-    if(req && typeof req !== 'undefined' && req.params && typeof req.params !== 'undefined' && req.params['productId'] && typeof req.params['productId'] !== 'undefined'){
+    if(req && typeof req !== 'undefined' && req.params && typeof req.params !== 'undefined' &&
+     req.params['userId'] && typeof req.params['userId'] !== 'undefined' &&
+     req.params['productId'] && typeof req.params['productId'] !== 'undefined'){
       async.waterfall([
         function(callback){
           productDB.getProductById(req.params['productId'],function(err,result){
@@ -37,19 +41,32 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
           })
         },
         function(productDetail,sellerDetail,callback){
+          UserProfileDB.getUserById(req.params['userId'],function(err,usrResult){
+            if(err){
+              callback({errorCode:500,message:"Unable to get fetch data"},null);
+            }else{
+              if(usrResult){
+                callback(null,productDetail,usrResult,sellerDetail);
+              }else{
+                callback({errorCode:502,message:"user not found"},null);
+              }
+            }
+          })
+        },
+        function(productDetail,userDetail,sellerDetail,callback){
           categoryDB.getCategory(productDetail.category,function(err,result){
             if(err){
               callback({errorCode:500,message:"Unable to get fetch data"},null);
             }else{
               if(result){
-                callback(null,productDetail,sellerDetail,result);
+                callback(null,productDetail,userDetail,sellerDetail,result);
               }else{
                 callback({errorCode:503,message:"product category not found"},null);
               }
             }
           })
         },
-        function(productDetail,sellerDetail,category,callback){
+        function(productDetail,userDetail,sellerDetail,category,callback){
           var profilePicPath = "http://"+req.headers.host+"/"+config.profilePicturePublicPath;
           var productPicPath = "http://"+req.headers.host+"/"+config.productPicturePublicPath;
           var productImage = [productPicPath+config.productDefaultImage];
@@ -59,11 +76,16 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
               productImage.push(productPicPath+img);
             })
           }
+          var expiryDate = new Date(productDetail.expiryDate);
+          var strDate = expiryDate.getDate()+"/"+(expiryDate.getUTCMonth()+1)+"/"+expiryDate.getFullYear();
+          var daysRemaining = Math.floor(( Date.parse(expiryDate) - Date.parse(new Date()) ) / 86400000);
+
           var responseObj = {
             productId : productDetail._id,
             productName : productDetail.productName,
             price : productDetail.price,
             image : productImage,
+            productAddress : productDetail.address,
             isNagotiable : productDetail.isNagotiable,
             categoryId : productDetail.category,
             subCategoryId : productDetail.subcateory,
@@ -76,9 +98,13 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
             sellerEmail : sellerDetail.email,
             sellerName : sellerDetail.fullName,
             sellerImage : (sellerDetail.profilePicture == undefined || sellerDetail.profilePicture == null)?profilePicPath+config.profileDefaultImage:profilePicPath+sellerDetail.profilePicture,
-            sellerRatingCount : sellerDetail.sellerRating.toFixed(1),
+            sellerRatingCount : (sellerDetail.sellerRating!=undefined && sellerDetail.sellerRating!=null)?sellerDetail.sellerRating.toFixed(1):undefined,
             sellerReviewCount : (sellerDetail.sellerReview!=undefined && sellerDetail.sellerReview!=null && sellerDetail.sellerReview!="")?sellerDetail.sellerReview.length:0,
-            isFollowedByUser : (sellerDetail.following!=undefined && sellerDetail.following!=null && sellerDetail.following!="")?sellerDetail.following.length:0,
+            sellerReview : sellerDetail.sellerReview,
+            isFollowedByUser : (sellerDetail.following!=undefined && sellerDetail.following!=null && sellerDetail.following!="" && sellerDetail.following.length>0)?true:false,
+            isFavorite : userDetail.wishList.indexOf(productDetail._id)>-1?true:false,
+            expiryDate : strDate,
+            daysRemaining : daysRemaining
           }
           callback(null,responseObj);
         }
@@ -188,6 +214,7 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
             if(req.body['address'] && typeof req.body['address'] !== 'undefined'){
               resProduct["address"]=req.body['address'];
             }
+            resProduct["expiryDate"] = expiryDate;
             var productImg = [];
             if(req.files!=null && req.files["productImage"]!=undefined){
               productImg = req.files["productImage"];
@@ -197,22 +224,26 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
             }
 
             var parallelFunction = [];
-            productImg.forEach(function(img){
-              var saveFile = function(callback) {
-                var filePath = path.resolve(__dirname,"../../../../"+config.productPicturePath);
-                var date = new Date();
-                var fileType = img.mimetype;
-                var fileName = req.body['name'].replace(/ /g,'')+"_"+date.getTime()+"."+fileType.split("/")[1];
-                fs.writeFile(filePath+"/"+fileName,img.data,"binary",function(err) {
-                  if(err){
-                    callback(null,{fileName:fileName,diskStatus:false});
-                  }else{
-                    callback(null,{fileName:fileName,diskStatus:true});
-                  }
-                })
-              }
-              parallelFunction.push(saveFile)
-            })
+            for(var i=0 ; i<productImg.length ; i++){
+              var img = productImg[i];
+              (function(img,index) {
+                var saveFile = function(callback) {
+                  var filePath = path.resolve(__dirname,"../../../../"+config.productPicturePath);
+                  var date = new Date();
+                  var fileType = img.mimetype;
+                  var fileName = req.body['name'].replace(/ /g,'')+"_"+shortid.generate()+"_img_"+index+"."+fileType.split("/")[1];
+                  fs.writeFile(filePath+"/"+fileName,img.data,"binary",function(err) {
+                    if(err){
+                      callback(null,{fileName:fileName,diskStatus:false});
+                    }else{
+                      callback(null,{fileName:fileName,diskStatus:true});
+                    }
+                  })
+                }
+                parallelFunction.push(saveFile)
+              })(img,i)
+            }
+
 
             async.parallel(parallelFunction,function(err,finalRes){
               var imageToSave = [];
@@ -282,22 +313,25 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
             }
 
             var parallelFunction = [];
-            productImg.forEach(function(img){
-              var saveFile = function(callback) {
-                var filePath = path.resolve(__dirname,"../../../../"+config.productPicturePath);
-                var date = new Date();
-                var fileType = img.mimetype;
-                var fileName = req.body['name'].replace(/ /g,'')+"_"+date.getTime()+"."+fileType.split("/")[1];
-                fs.writeFile(filePath+"/"+fileName,img.data,"binary",function(err) {
-                  if(err){
-                    callback(null,{fileName:fileName,diskStatus:false});
-                  }else{
-                    callback(null,{fileName:fileName,diskStatus:true});
-                  }
-                })
-              }
-              parallelFunction.push(saveFile)
-            })
+            for(var i=0 ; i<productImg.length ; i++){
+              var img = productImg[i];
+              (function(img,index) {
+                var saveFile = function(callback) {
+                  var filePath = path.resolve(__dirname,"../../../../"+config.productPicturePath);
+                  var date = new Date();
+                  var fileType = img.mimetype;
+                  var fileName = req.body['name'].replace(/ /g,'')+"_"+shortid.generate()+"_img_"+index+"."+fileType.split("/")[1];
+                  fs.writeFile(filePath+"/"+fileName,img.data,"binary",function(err) {
+                    if(err){
+                      callback(null,{fileName:fileName,diskStatus:false});
+                    }else{
+                      callback(null,{fileName:fileName,diskStatus:true});
+                    }
+                  })
+                }
+                parallelFunction.push(saveFile)
+              })(img,i);
+            }
 
 
             async.parallel(parallelFunction,function(err,finalRes){
@@ -307,6 +341,11 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
                   imageToSave.push(obj.fileName)
                 }
               })
+              var expiryDate = new Date();
+              expiryDate.setDate(expiryDate.getDate()+config.productPublishingDays);
+              expiryDate.setHours(23);
+              expiryDate.setMinutes(58);
+
               var insertObj = {
                 productTitle: req.body['title']
                 , productName: req.body['name']
@@ -315,11 +354,12 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
                 , image: imageToSave
                 , location: [parseFloat(req.body['lat']),parseFloat(req.body['long'])]
                 , isNagotiable: req.body['isNagotiable']=="yes"?true:false
-                , category: req.body['category']
-                , subcateory: req.body['subcateory']
+                , category: mongoose.mongo.ObjectId(req.body['category'])
+                , subcateory: mongoose.mongo.ObjectId(req.body['subcateory'])
                 , sellerId: sellerRec._id
                 , postedDate : new Date()
                 , address : req.body['address']
+                , expiryDate : expiryDate
               }
               productDB.insertProduct(insertObj,function(err,result){
                 if(err){
@@ -385,7 +425,7 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
     req.query && typeof req.query !== 'undefined' &&
     req.query['userId'] && typeof req.query['userId'] !== 'undefined' &&
     req.query['pageNumber'] && typeof req.query['pageSize'] !== 'undefined'){
-      var customCondition = {sellerId:{$ne:req.query['userId']}};
+      var customCondition = {sellerId:{$ne:req.query['userId']},expiryDate:{$gte:new Date()}};
       if(req.query['lat'] && req.query['lat']!="" && req.query['lat']!='null' && req.query['long'] && req.query['long']!="" && req.query['long']!='null' && req.query['distance'] && req.query['distance']!="" && req.query['distance']!='null'){
         var coords = [req.query['lat'],req.query['long']];
         var distance = req.query['distance'] / 111.12; //convert the distance to radius
@@ -410,7 +450,6 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
       if(req.query['subCategoryId'] && req.query['subCategoryId']!="" && req.query['subCategoryId']!='null'){
         customCondition.subcateory = {$in:req.query['subCategoryId'].split(",")};
       }
-
       productDB.getProductByCondition(customCondition,function(err,result){
         if(err){
           res.status(500);
@@ -429,6 +468,9 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
             if(result[i].image.length>0){
               productImg = result[i].image.map(function(img){return productPicPath+img;})
             }
+            var expiryDate = new Date(result[i].expiryDate);
+            var strDate = expiryDate.getDate()+"/"+(expiryDate.getUTCMonth()+1)+"/"+expiryDate.getFullYear();
+            var daysRemaining = Math.floor(( Date.parse(expiryDate) - Date.parse(new Date()) ) / 86400000);
             finalRes.push({
               productId : result[i]._id,
               productTitle : result[i].productTitle,
@@ -436,7 +478,9 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
               price : result[i].price,
               image : productImg,
               location : result[i].location,
-              address : result[i].address
+              address : result[i].address,
+              expiryDate : strDate,
+              daysRemaining : daysRemaining
             });
           }
           res.status(200);

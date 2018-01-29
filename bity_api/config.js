@@ -13,7 +13,19 @@ module.exports = function(collection) {
         , profileDefaultImage : "defult_profile_picture.png"
         , productDefaultImage : "defult_product_picture.png"
 	      , validateToken : false
-        , senderEmail : ""
-        , password : ""
+        , senderEmail : "ashish17dummy@gmail.com"
+        , password : "patel123"
+        , productPublishingDays : 30
+        , fireBaseServerKey : "AAAA0OE0qE8:APA91bESIO5lRfXlaIfnQZVDKXpJfbuk0xJGbDAPxQg-AOJ9lFtDsxIbch3quwev9Ti-DimqXFwtsOxylEgYV5haH8gleqTaaASjJqilP0SipmWtbMgxovoG3DH1iewjfhf5YjNK3pSS"
+        , orderStatus:{
+          purchase:{
+            pendingForLocalDeliveryConfirmation : "P",
+            itemInMyPosetionPossession : "PI"
+          },
+          sales:{
+            pendingForLocalDeliveryConfirmation : "P",
+            itemInMyBuyerPossession : "I"
+          }
+        }
     };
 };

@@ -24,6 +24,7 @@ ProductDB.Init = function(con) {
                 , category: Schema.ObjectId
                 , subcateory: Schema.ObjectId
                 , sellerId: Schema.ObjectId
+                , expiryDate : Date
                 , offers: [{
                   userId:Schema.ObjectId,
                   offerPrice:Number

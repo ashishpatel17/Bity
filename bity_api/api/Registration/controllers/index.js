@@ -209,7 +209,7 @@ function RegistrationController(userAuthDB,UserProfileDB,UserLoginDB,Transaction
                     pass: config.password
                   }
                 })
-                var verificationUrl = "http://"+req.headers.host+"/verifyEmail?verificationCode="+emailIns.verificationCode;
+                var verificationUrl = "http://"+req.headers.host+"/bityo/verifyEmail/"+emailIns.verificationCode;
                 var mailOptions = {
                   from: config.senderEmail,
                   to: req.params["userEmail"],
@@ -268,7 +268,8 @@ function RegistrationController(userAuthDB,UserProfileDB,UserLoginDB,Transaction
                         pass: config.password
                       }
                     })
-                    var verificationUrl = "http://"+req.headers.host+"/verifyEmail?verificationCode="+emailIns.verificationCode;
+                    
+                    var verificationUrl = "http://"+req.headers.host+"/bityo/verifyEmail/"+emailIns.verificationCode;
                     var mailOptions = {
                       from: config.senderEmail,
                       to: userObj['email'],

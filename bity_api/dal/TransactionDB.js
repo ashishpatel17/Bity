@@ -13,6 +13,7 @@ UserTransactionDB.Init = function(con) {
         if (e.name === 'MissingSchemaError') {
             this.UserTransactionSchema = new Schema({
                 _id: Schema.ObjectId
+                , transactionId : String
                 , UserId: Schema.ObjectId
                 , UserEmail: String
                 , ProductId: Schema.ObjectId

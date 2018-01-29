@@ -7,7 +7,7 @@ var CategoryDB = require('../../../dal/CategoryDB');
 var ProductController = new (require('../controllers/index'))(ProductDB,UserProfileDB,CategoryDB);
 var loginController = new (require('../../Session/controllers/index'))(userAuthDB, UserLoginDB, UserProfileDB);
 
-app.get('/api/getProductDetails/:productId',loginController.validateSession,ProductController.getProductDetails);
+app.get('/api/getProductDetails/:userId/:productId',loginController.validateSession,ProductController.getProductDetails);
 app.get('/api/getProducts',loginController.validateSession,ProductController.getProducts);
 app.get('/api/getUserStore/:userId/:pageSize?/:pageNumber?',loginController.validateSession,ProductController.getUserStore);
 app.post('/api/publishProduct',loginController.validateSession,ProductController.publishProduct);

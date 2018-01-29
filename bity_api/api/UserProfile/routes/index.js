@@ -17,3 +17,4 @@ app.post('/api/editProfile/:userId',loginController.validateSession,UserProfileC
 app.get('/api/getMyProfile/:userId',loginController.validateSession,UserProfileController.getMyProfile);
 app.get('/api/getUserProfile/:userId',loginController.validateSession,UserProfileController.getUserProfile);
 app.get('/api/followSeller/:userId/:sellerId',UserProfileController.followSeller);
+app.get('/api/unFollowSeller/:userId/:sellerId',UserProfileController.unFollowSeller);

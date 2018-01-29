@@ -28,6 +28,7 @@ UserProfileDB.Init = function(con) {
                 , sellerRating: Number
                 , sellerReview : [{
                   userId : Schema.ObjectId,
+                  userName : String,
                   comment : String,
                   rating : Number,
                   postDate : Date

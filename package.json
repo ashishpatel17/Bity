@@ -48,6 +48,7 @@
     "query-string": "^5.0.0",
     "request": "^2.75.0",
     "seq-queue": "0.0.5",
+    "shortid": "^2.2.8",
     "underscore": "^1.8.3",
     "utf8": "^2.1.2",
     "uuid": "^3.1.0",

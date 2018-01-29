@@ -83,13 +83,25 @@ function OrderController(UserProfileDB,ProductDB,TransactionDB,CategoryDB) {
     if(req && typeof req !== 'undefined' && req.body && typeof req.body !== 'undefined' &&
       req.body['orderId'] && typeof req.body['orderId'] !== 'undefined' &&
       req.body['status'] && typeof req.body['status'] !== 'undefined'){
-        TransactionDB.updateOrderStatus(req.body['orderId'],req.body['status'],function(err,updateRes){
+        TransactionDB.getOrderById(req.params['orderId'],function(err,result){
           if(err){
             res.status(500);
             res.send({"Message": "Unable to fetch data",statusCode:500});
           }else{
-            res.status(200);
-            res.send({"Message": "order status updated",statusCode:200});
+            if(result){
+              TransactionDB.updateOrderStatus(req.body['orderId'],req.body['status'],function(err,updateRes){
+                if(err){
+                  res.status(500);
+                  res.send({"Message": "Unable to fetch data",statusCode:500});
+                }else{
+                  res.status(200);
+                  res.send({"Message": "order status updated",statusCode:200});
+                }
+              })
+            }else{
+              res.status(500);
+              res.send({"Message": "Order not found",statusCode:500});
+            }
           }
         })
     } else {
@@ -150,6 +162,8 @@ function OrderController(UserProfileDB,ProductDB,TransactionDB,CategoryDB) {
                     productImage.push(productPicPath+img);
                   })
                 }
+                var tranDate = new Date(orderDetail.TransactionDate);
+                var strDate = tranDate.getDate()+"/"+(tranDate.getUTCMonth()+1)+"/"+tranDate.getFullYear();
                 var responseObj = {
                   productId : productDetail._id,
                   productName : productDetail.productName,
@@ -165,7 +179,7 @@ function OrderController(UserProfileDB,ProductDB,TransactionDB,CategoryDB) {
                   productLocation : productDetail.location,
                   orderType : orderDetail.TransactionType,
                   orderPrice : orderDetail.Price,
-                  orderDate : orderDetail.TransactionDate,
+                  orderDate : strDate,
                   orderStatus : orderDetail.Status
                 }
                 callback(null,responseObj);

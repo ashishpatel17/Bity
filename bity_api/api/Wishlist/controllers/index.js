@@ -96,7 +96,8 @@ function WishlistController(UserProfileDB,productDB) {
                       productName : proRes[i].productName,
                       price : proRes[i].price,
                       image : productImage,
-                      location : proRes[i].location
+                      location : proRes[i].location,
+                      address : proRes[i].address
                     })
                   }
                   var pageNumber = parseInt(req.params['pageNumber']);

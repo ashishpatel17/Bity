@@ -20,6 +20,7 @@ function UserReviewController(userAuthDB,UserProfileDB,UserLoginDB,TransactionDB
           if(result){
             result.sellerReview.push({
               userId : req.body["userId"],
+              userName : result.fullName,
               comment : req.body["comment"],
               rating : parseFloat(req.body["rating"]),
               postDate : new Date()
@@ -69,7 +70,7 @@ function UserReviewController(userAuthDB,UserProfileDB,UserLoginDB,TransactionDB
               finalResponse.push({
                 date : rDate
                 ,message : urev.comment
-                ,rating : urev.rating.toFixed(1)
+                ,rating : (urev.rating!=undefined && urev.rating!=null)?urev.rating.toFixed(1):undefined
               })
             })
             var pageNumber = parseInt(req.params['pageNumber']);
