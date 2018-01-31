@@ -9,6 +9,7 @@ var CategoryDB = require('../../../dal/CategoryDB');
 var OrderController = new (require('../controllers/index'))(UserProfileDB,ProductDB,TransactionDB,CategoryDB);
 var loginController = new (require('../../Session/controllers/index'))(userAuthDB, UserLoginDB, UserProfileDB);
 
+app.post('/api/postOrder',loginController.validateSession,OrderController.postOrder);
 app.get('/api/getOrderList/:userId/:orderType/:pageSize?/:pageNumber?',loginController.validateSession,OrderController.getOrderList);
-app.get('/api/getOrderDetails/:orderId',loginController.validateSession,OrderController.getOrderDetails);
+app.get('/api/getOrderDetails/:orderId/:userId',loginController.validateSession,OrderController.getOrderDetails);
 app.post('/api/changeOrderStatus',loginController.validateSession,OrderController.changeOrderStatus);

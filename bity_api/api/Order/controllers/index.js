@@ -6,6 +6,83 @@ var async = require('async');
 
 function OrderController(UserProfileDB,ProductDB,TransactionDB,CategoryDB) {
 
+  this.postOrder = function(req,res){
+    if(req && typeof req !== 'undefined' && req.body && typeof req.body !== 'undefined' &&
+      req.body['buyerId'] && typeof req.body['buyerId'] !== 'undefined' &&
+      req.body['productId'] && typeof req.body['productId'] !== 'undefined' &&
+      req.body['productPrice'] && typeof req.body['productPrice'] !== 'undefined' &&
+      req.body['sellerId'] && typeof req.body['sellerId'] !== 'undefined' &&
+      req.body['paymentStatus'] && typeof req.body['paymentStatus'] !== 'undefined' &&
+      req.body['deliveryMethod'] && typeof req.body['deliveryMethod'] !== 'undefined' &&
+      req.body['shippingAddress'] && typeof req.body['shippingAddress'] !== 'undefined' &&
+      req.body['shippingCity'] && typeof req.body['shippingCity'] !== 'undefined' &&
+      req.body['shippingState'] && typeof req.body['shippingState'] !== 'undefined' &&
+      req.body['shippingZipcode'] && typeof req.body['shippingZipcode'] !== 'undefined'){
+        async.parallel([
+          function(callback){
+            UserProfileDB.getUserById(req.body['buyerId'],function(err,loginRes){
+              if(err) callback({errCode:408,message:"user not found"},null);
+              else callback(null,loginRes);
+            })
+          },
+          function(callback){
+            UserProfileDB.getUserById(req.body['sellerId'],function(err,selRes){
+              if(err) callback({errCode:408,message:"seller not found"},null);
+              else callback(null,selRes);
+            })
+          },
+          function(callback){
+            ProductDB.getProductById(req.body['productId'],function(err,proRes){
+              if(err) callback({errCode:500,message:"product not found"},null);
+              else callback(null,proRes);
+            })
+          }
+        ],function(err,pRes){
+          if(err){
+            res.status(err.errCode);
+            res.send({"Message":err.message});
+          }else{
+            var insObj = {
+              deliveryMethod : req.body['deliveryMethod']
+              , shippingAddress : {
+                address : req.body['shippingAddress']
+                ,city : req.body['shippingCity']
+                ,state : req.body['shippingState']
+                ,zip : req.body['shippingZipcode']
+              }
+              , paymentStatus : req.body['paymentStatus']
+              , BuyerId: pRes[0]._id
+              , ProductId: pRes[2]._id
+              , Price: req.body['productPrice']
+              , SellerId: pRes[1]._id
+              , TransactionDate: new Date()
+              , buyerStatus : {
+                  status : config.orderStatus.purchase.orderPlaced,
+                  lastUpdateDate : new Date()
+                }
+              , sellerStatus : {
+                  status : config.orderStatus.sales.orderRecived,
+                  lastUpdateDate : new Date()
+                }
+            }
+            TransactionDB.insertTransacton(insObj,function(err,insRes){
+              if(err){
+                res.status(601);
+                res.send({"Message": "Unable to insert data",statusCode:601});
+              }else{
+                console.log(JSON.stringify(insRes));
+                res.status(200);
+                res.send({"Message": "Order sucessfully posted",statusCode:200,data:{transactionId:insRes.ops[0]._id}});
+              }
+            })
+          }
+        })
+      }else{
+        res.status(400);
+        res.send({"Message": "Invalid request",statusCode:400});
+      }
+  }
+
   this.getOrderList = function(req,res){
     if(req && typeof req !== 'undefined' && req.params && typeof req.params !== 'undefined' &&
       req.params['userId'] && typeof req.params['userId'] !== 'undefined' &&
@@ -17,56 +94,58 @@ function OrderController(UserProfileDB,ProductDB,TransactionDB,CategoryDB) {
           res.send({"Message": "Unable to fetch data",statusCode:500});
         }else {
           if(loginRes!=null && loginRes!=undefined){
-            var transactionType = req.params['orderType'].toLowerCase()=="p"?"purchase":"sales";
-            TransactionDB.getUserTransactionByOrderType(loginRes._id,transactionType,function(err,result){
-              if(err){
-                res.status(500);
-                res.send({"Message": "Unable to fetch data",statusCode:500});
-              }else{
-                var totalData = result.length;
-                if(req.params['pageSize'] && req.params['pageSize']!=null && req.params['pageSize']!="" && req.params['pageNumber'] && req.params['pageNumber']!=null && req.params['pageNumber']!=""){
-                  var pageNumber = req.params['pageNumber'];
-                  var pageSize = req.params['pageSize'];
-                  result = result.slice(genericUtils.GetStartIndexForPagination(pageSize,pageNumber),genericUtils.GetEndIndexForPagination(pageSize,pageNumber,result.length));
-                }
-                var products = result.map(function(tran){return tran.ProductId});
-                ProductDB.getProductByCondition({_id:{$in:products}},function(err,prodResult){
-                  if(err){
-                    res.status(500);
-                    res.send({"Message": "Unable to fetch data",statusCode:500});
-                  }else{
-                    var finalRes = [];
-                    result.forEach(function(tran){
-                      var transactionProduct = _.find(prodResult,function(pro){if(pro._id.toString()==tran.ProductId.toString()){return pro;}})
-
-                      var productPicPath = "http://"+req.headers.host+"/"+config.productPicturePublicPath;
-                      var productImage = [productPicPath+config.productDefaultImage];
-                      if(transactionProduct.image && transactionProduct.image!=undefined && transactionProduct.image!=null && transactionProduct.image!="" && transactionProduct.image.length>0){
-                        productImage = [];
-                        transactionProduct.image.forEach(function(img){
-                          productImage.push(productPicPath+img);
-                        })
-                      }
-                      finalRes.push({
-                        orderId : tran._id,
-                        status : tran.status,
-                        productId : transactionProduct._id,
-                        productName : transactionProduct.productName,
-                        price : transactionProduct.price,
-                        image : productImage,
-                        orderType : tran.TransactionType,
-                        location : transactionProduct.location
-                      })
-                    })
-                    var pageNumber = parseInt(req.params['pageNumber']);
-                    var pageSize = parseInt(req.params['pageSize']);
+            if(req.params['orderType'].toLowerCase()=="p"){
+              TransactionDB.getUserPurchaseOrder(loginRes._id,function(err,result){
+                if(err){
+                  res.status(500);
+                  res.send({"Message": "Unable to fetch data",statusCode:500});
+                }else{
+                  var totalData = result.length;
+                  if(req.params['pageSize'] && req.params['pageSize']!=null && req.params['pageSize']!="" && req.params['pageNumber'] && req.params['pageNumber']!=null && req.params['pageNumber']!=""){
+                    var pageNumber = req.params['pageNumber'];
+                    var pageSize = req.params['pageSize'];
                     var totalPage = Math.ceil(totalData/pageSize);
-                    res.status(200);
-                    res.send({totalData:totalData,totalPage:totalPage,curPage:pageNumber,data:finalRes,statusCode : 200});
+                    result = result.slice(genericUtils.GetStartIndexForPagination(pageSize,pageNumber),genericUtils.GetEndIndexForPagination(pageSize,pageNumber,result.length));
                   }
-                })
-              }
-            })
+                  getTransactionProductDetails(req,result,function(err,finalRes){
+                    if(err){
+                      res.status(500);
+                      res.send({"Message": "Unable to fetch data",statusCode:500});
+                    }else{
+                      res.status(200);
+                      res.send({totalData:totalData,totalPage:totalPage,curPage:pageNumber,data:finalRes,statusCode : 200});
+                    }
+                  })
+                }
+              })
+            }else if(req.params['orderType'].toLowerCase()=="s"){
+              TransactionDB.getUserSalesOrder(loginRes._id,function(err,result){
+                if(err){
+                  res.status(500);
+                  res.send({"Message": "Unable to fetch data",statusCode:500});
+                }else{
+                  var totalData = result.length;
+                  if(req.params['pageSize'] && req.params['pageSize']!=null && req.params['pageSize']!="" && req.params['pageNumber'] && req.params['pageNumber']!=null && req.params['pageNumber']!=""){
+                    var pageNumber = req.params['pageNumber'];
+                    var pageSize = req.params['pageSize'];
+                    var totalPage = Math.ceil(totalData/pageSize);
+                    result = result.slice(genericUtils.GetStartIndexForPagination(pageSize,pageNumber),genericUtils.GetEndIndexForPagination(pageSize,pageNumber,result.length));
+                  }
+                  getTransactionProductDetails(req,result,function(err,finalRes){
+                    if(err){
+                      res.status(500);
+                      res.send({"Message": "Unable to fetch data",statusCode:500});
+                    }else{
+                      res.status(200);
+                      res.send({totalData:totalData,totalPage:totalPage,curPage:pageNumber,data:finalRes,statusCode : 200});
+                    }
+                  })
+                }
+              })
+            }else{
+              res.status(400);
+              res.send({"Message": "Invalid order type",statusCode:400});
+            }
           }else{
             res.status(408);
             res.send({Message:"User not found",statusCode:408});
@@ -82,22 +161,38 @@ function OrderController(UserProfileDB,ProductDB,TransactionDB,CategoryDB) {
   this.changeOrderStatus = function(req,res){
     if(req && typeof req !== 'undefined' && req.body && typeof req.body !== 'undefined' &&
       req.body['orderId'] && typeof req.body['orderId'] !== 'undefined' &&
+      req.body['userId'] && typeof req.body['userId'] !== 'undefined' &&
       req.body['status'] && typeof req.body['status'] !== 'undefined'){
-        TransactionDB.getOrderById(req.params['orderId'],function(err,result){
+        TransactionDB.getOrderById(req.body['orderId'],function(err,result){
           if(err){
             res.status(500);
             res.send({"Message": "Unable to fetch data",statusCode:500});
           }else{
             if(result){
-              TransactionDB.updateOrderStatus(req.body['orderId'],req.body['status'],function(err,updateRes){
-                if(err){
-                  res.status(500);
-                  res.send({"Message": "Unable to fetch data",statusCode:500});
-                }else{
-                  res.status(200);
-                  res.send({"Message": "order status updated",statusCode:200});
-                }
-              })
+              if(result.BuyerId.toString().toLowerCase() == req.body['userId'].toString().toLowerCase()){
+                TransactionDB.updateBuyerOrderStatus(req.body['orderId'],req.body['status'],function(err,updateRes){
+                  if(err){
+                    res.status(502);
+                    res.send({"Message": "Unable to fetch data",statusCode:502});
+                  }else{
+                    res.status(200);
+                    res.send({"Message": "order status updated",statusCode:200});
+                  }
+                })
+              }else if(result.SellerId.toString().toLowerCase() == req.body['userId'].toString().toLowerCase()){
+                TransactionDB.updateSellerOrderStatus(req.body['orderId'],req.body['status'],function(err,updateRes){
+                  if(err){
+                    res.status(503);
+                    res.send({"Message": "Unable to fetch data",statusCode:503});
+                  }else{
+                    res.status(200);
+                    res.send({"Message": "order status updated",statusCode:200});
+                  }
+                })
+              }else{
+                res.status(501);
+                res.send({"Message": "Order not found",statusCode:501});
+              }
             }else{
               res.status(500);
               res.send({"Message": "Order not found",statusCode:500});
@@ -164,6 +259,7 @@ function OrderController(UserProfileDB,ProductDB,TransactionDB,CategoryDB) {
                 }
                 var tranDate = new Date(orderDetail.TransactionDate);
                 var strDate = tranDate.getDate()+"/"+(tranDate.getUTCMonth()+1)+"/"+tranDate.getFullYear();
+
                 var responseObj = {
                   productId : productDetail._id,
                   productName : productDetail.productName,
@@ -180,7 +276,9 @@ function OrderController(UserProfileDB,ProductDB,TransactionDB,CategoryDB) {
                   orderType : orderDetail.TransactionType,
                   orderPrice : orderDetail.Price,
                   orderDate : strDate,
-                  orderStatus : orderDetail.Status
+                  orderStatus : orderDetail.Status,
+                  sellerStatus : orderDetail.sellerStatus,
+                  buyerStatus : orderDetail.buyerStatus
                 }
                 callback(null,responseObj);
               }
@@ -197,6 +295,42 @@ function OrderController(UserProfileDB,ProductDB,TransactionDB,CategoryDB) {
         res.status(400);
         res.send({Message:"Invalid request",statusCode:400});
       }
+  }
+
+  var getTransactionProductDetails = function(req,result,callback){
+        var products = result.map(function(tran){return tran.ProductId});
+        ProductDB.getProductByCondition({_id:{$in:products}},function(err,prodResult){
+          if(err){
+            callback(err,null);
+          }else{
+            var finalRes = [];
+            result.forEach(function(tran){
+              var transactionProduct = _.find(prodResult,function(pro){if(pro._id.toString()==tran.ProductId.toString()){return pro;}})
+
+              var productPicPath = "http://"+req.headers.host+"/"+config.productPicturePublicPath;
+              var productImage = [productPicPath+config.productDefaultImage];
+              if(transactionProduct.image && transactionProduct.image!=undefined && transactionProduct.image!=null && transactionProduct.image!="" && transactionProduct.image.length>0){
+                productImage = [];
+                transactionProduct.image.forEach(function(img){
+                  productImage.push(productPicPath+img);
+                })
+              }
+              finalRes.push({
+                orderId : tran._id,
+                status : tran.status,
+                productId : transactionProduct._id,
+                productName : transactionProduct.productName,
+                price : transactionProduct.price,
+                image : productImage,
+                orderType : tran.TransactionType,
+                location : transactionProduct.location,
+                buyerStatus : tran.buyerStatus,
+                sellerStatus : tran.sellerStatus
+              })
+            })
+            callback(null,finalRes);
+          }
+        })
   }
 
 }

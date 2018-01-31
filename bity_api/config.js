@@ -20,11 +20,13 @@ module.exports = function(collection) {
         , orderStatus:{
           purchase:{
             pendingForLocalDeliveryConfirmation : "P",
-            itemInMyPosetionPossession : "PI"
+            itemInMyPosetionPossession : "PI",
+            orderPlaced : "OP"
           },
           sales:{
             pendingForLocalDeliveryConfirmation : "P",
-            itemInMyBuyerPossession : "I"
+            itemInMyBuyerPossession : "I",
+            orderRecived : "OR"
           }
         }
     };

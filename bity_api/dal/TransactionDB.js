@@ -13,15 +13,27 @@ UserTransactionDB.Init = function(con) {
         if (e.name === 'MissingSchemaError') {
             this.UserTransactionSchema = new Schema({
                 _id: Schema.ObjectId
-                , transactionId : String
-                , UserId: Schema.ObjectId
-                , UserEmail: String
+                , deliveryMethod : String
+                , shippingAddress : {
+                  address : String
+                  ,city : String
+                  ,state : String
+                  ,zip : String
+                }
+                , paymentStatus : String
+                , BuyerId: Schema.ObjectId
                 , ProductId: Schema.ObjectId
                 , Price: Number
-                , TransactionType: String // purchase or sales
-                , TransactionWith: Schema.ObjectId
+                , SellerId: Schema.ObjectId
                 , TransactionDate: Date
-                , Status:String
+                , buyerStatus : {
+                    status:String,
+                    lastUpdateDate : Date
+                  }
+                , sellerStatus : {
+                    status:String,
+                    lastUpdateDate : Date
+                  }
             }, {collection: collection});
             this.UserTransactionModel = con.model(collection, this.UserTransactionSchema);
         }
@@ -37,8 +49,17 @@ UserTransactionDB.getUserTransaction = function (userId, orderId, callback){
     });
 };
 
-UserTransactionDB.updateOrderStatus = function (orderId,status,callback){
-    this.UserTransactionModel.findOneAndUpdate({_id: orderId},{Status:status}, function (err, result){
+UserTransactionDB.updateBuyerOrderStatus = function (orderId,status,callback){
+    this.UserTransactionModel.findOneAndUpdate({_id: orderId},{buyerStatus:{status:status,lastUpdateDate:new Date()}}, function (err, result){
+        if (err) callback(err);
+        else {
+            callback(null, result);
+        }
+    });
+};
+
+UserTransactionDB.updateSellerOrderStatus = function (orderId,status,callback){
+    this.UserTransactionModel.findOneAndUpdate({_id: orderId},{sellerStatus:{status:status,lastUpdateDate:new Date()}}, function (err, result){
         if (err) callback(err);
         else {
             callback(null, result);
@@ -73,6 +94,30 @@ UserTransactionDB.getOrderById = function (orderId, callback){
     });
 };
 
+UserTransactionDB.getUserPurchaseOrder = function(userId,callback){
+  this.UserTransactionModel.find({BuyerId: userId}, function (err, result){
+      if (err) callback(err);
+      else {
+          callback(null, result);
+      }
+  });
+}
+
+UserTransactionDB.getUserSalesOrder = function(userId,callback){
+  this.UserTransactionModel.find({SellerId: userId}, function (err, result){
+      if (err) callback(err);
+      else {
+          callback(null, result);
+      }
+  });
+}
+
+UserTransactionDB.insertTransacton = function (insObj,callback){
+  this.UserTransactionModel.collection.insert(insObj,{setDefaultsOnInsert: true}, function (err,res){
+      if (err) callback(err,null);
+      else callback(null,res);
+  });
+}
 
 
 module.exports = UserTransactionDB;
