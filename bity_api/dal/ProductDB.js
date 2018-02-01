@@ -35,6 +35,7 @@ ProductDB.Init = function(con) {
                 }]
                 , lastUpdateDate : Date
                 , postedDate : Date
+                , isSold : Boolean
             }, {collection: collection});
             this.ProductSchema.index({ location: '2d' });
             this.ProductModel = con.model(collection, this.ProductSchema);
@@ -62,6 +63,15 @@ ProductDB.getProductById = function (productId, callback){
 
 ProductDB.getProductBySeller = function (sellerId, callback){
     this.ProductModel.find({sellerId: sellerId}, function (err, result){
+        if (err) callback(err);
+        else {
+            callback(null, result);
+        }
+    });
+}
+
+ProductDB.getUserActiveProducts = function (sellerId, callback){
+    this.ProductModel.find({sellerId: sellerId,expiryDate:{$gte:new Date()}}, function (err, result){
         if (err) callback(err);
         else {
             callback(null, result);
@@ -108,11 +118,11 @@ ProductDB.insertProduct = function (obj, callback){
 //     });
 // };
 //
-// ProductDB.deleteProductByEmail = function (email, callback){
-//     this.ProductModel.findOneAndRemove({email:email}, function (err){
-//         if (err) callback(err);
-//         else callback(null);
-//     });
-// };
+ProductDB.deleteProduct = function (productId, callback){
+    this.ProductModel.findOneAndRemove({_id:productId}, function (err,res){
+        if (err) callback(err,null);
+        else callback(null,res);
+    });
+};
 
 module.exports = ProductDB;

@@ -214,7 +214,6 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
             if(req.body['address'] && typeof req.body['address'] !== 'undefined'){
               resProduct["address"]=req.body['address'];
             }
-            resProduct["expiryDate"] = expiryDate;
             var productImg = [];
             if(req.files!=null && req.files["productImage"]!=undefined){
               productImg = req.files["productImage"];
@@ -523,6 +522,37 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
       res.status(400);
       res.send({"Message": "Invalid request","statusCode":400});
     }
+  }
+
+  this.deleteProduct = function(req,res){
+     if(req && typeof req !== 'undefined' && req.params && typeof req.params !== 'undefined' &&
+      req.params['userId'] && typeof req.params['userId'] !== 'undefined' &&
+      req.params['productId'] && typeof req.params['productId'] !== 'undefined'){
+        UserProfileDB.getUserById(req.params["userId"],function(err,loginRes){
+        if(err){
+          res.status(500);
+          res.send({"Message": "unable to identify user","statusCode":500});
+        }else{
+          productDB.deleteProduct(req.params['productId'],function(err,result){
+            if(err){
+              res.status(601);
+              res.send({"Message": "Failed to delete the product","statusCode":601});
+            }else{
+              if(result!=null){
+                res.status(200);
+                res.send({"Message": "Product successfully deleted","statusCode":200});
+              }else{
+                res.status(401);
+                res.send({"Message": "Product not found","statusCode":401});
+              }
+            }
+          })
+        }
+      })
+     }else{
+        res.status(400);
+        res.send({"Message": "Invalid request","statusCode":400});
+     }
   }
 
 }

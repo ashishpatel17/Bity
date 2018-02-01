@@ -57,11 +57,11 @@ function OrderController(UserProfileDB,ProductDB,TransactionDB,CategoryDB) {
               , SellerId: pRes[1]._id
               , TransactionDate: new Date()
               , buyerStatus : {
-                  status : config.orderStatus.purchase.orderPlaced,
+                  status : config.orderStatus.purchase.pendingForLocalDeliveryConfirmation,
                   lastUpdateDate : new Date()
                 }
               , sellerStatus : {
-                  status : config.orderStatus.sales.orderRecived,
+                  status : config.orderStatus.sales.pendingForLocalDeliveryConfirmation,
                   lastUpdateDate : new Date()
                 }
             }
@@ -119,29 +119,62 @@ function OrderController(UserProfileDB,ProductDB,TransactionDB,CategoryDB) {
                 }
               })
             }else if(req.params['orderType'].toLowerCase()=="s"){
-              TransactionDB.getUserSalesOrder(loginRes._id,function(err,result){
-                if(err){
-                  res.status(500);
-                  res.send({"Message": "Unable to fetch data",statusCode:500});
-                }else{
-                  var totalData = result.length;
-                  if(req.params['pageSize'] && req.params['pageSize']!=null && req.params['pageSize']!="" && req.params['pageNumber'] && req.params['pageNumber']!=null && req.params['pageNumber']!=""){
-                    var pageNumber = req.params['pageNumber'];
-                    var pageSize = req.params['pageSize'];
-                    var totalPage = Math.ceil(totalData/pageSize);
-                    result = result.slice(genericUtils.GetStartIndexForPagination(pageSize,pageNumber),genericUtils.GetEndIndexForPagination(pageSize,pageNumber,result.length));
-                  }
-                  getTransactionProductDetails(req,result,function(err,finalRes){
-                    if(err){
-                      res.status(500);
-                      res.send({"Message": "Unable to fetch data",statusCode:500});
-                    }else{
-                      res.status(200);
-                      res.send({totalData:totalData,totalPage:totalPage,curPage:pageNumber,data:finalRes,statusCode : 200});
+              ProductDB.getUserActiveProducts(loginRes._id,function(err,storeRes){
+              if(err){
+                res.status(501);
+                res.send({"Message": "unable to fetch data","statusCode":501});
+              }else{
+                var pId = storeRes.map(function(rec){return rec._id});
+                TransactionDB.getTransactionByProducts(pId,function(err,tranRes){
+                  if(err){
+                    res.status(501);
+                    res.send({"Message": "unable to fetch data","statusCode":501});
+                  }else{
+                    if(req.params['pageNumber'] && req.params['pageSize']){
+                      var totalData = storeRes.length;
+                      var pageNumber = parseInt(req.params['pageNumber']);
+                      var pageSize = parseInt(req.params['pageSize']);
+                      var totalPage = Math.ceil(totalData/pageSize);
+                      storeRes = storeRes.slice(genericUtils.GetStartIndexForPagination(pageSize,pageNumber),genericUtils.GetEndIndexForPagination(pageSize,pageNumber,storeRes.length));
                     }
-                  })
-                }
-              })
+                    var resObj = [];
+                    var productPicPath = "http://"+req.headers.host+"/"+config.productPicturePublicPath;
+                    storeRes.forEach(function(product){
+                      var productTransaction = _.find(tranRes,function(rec){return rec.ProductId.toString().toLowerCase() == product._id.toString().toLowerCase()});
+                      var productImage = [productPicPath+config.productDefaultImage];
+                      if(product.image && product.image!=undefined && product.image!=null && product.image!="" && product.image.length>0){
+                        productImage = [];
+                        product.image.forEach(function(img){
+                          productImage.push(productPicPath+img);
+                        })
+                      }
+
+                      var expiryDate = new Date(product.expiryDate);
+                      var strDate = expiryDate.getDate()+"/"+(expiryDate.getUTCMonth()+1)+"/"+expiryDate.getFullYear();
+                      var daysRemaining = Math.floor(( Date.parse(expiryDate) - Date.parse(new Date()) ) / 86400000);
+
+                      var obj = {
+                        productId : product._id,
+                        productName : product.productName,
+                        price : product.price,
+                        image : productImage,
+                        location : product.location,
+                        expiryDate : strDate,
+                        daysRemaining : daysRemaining
+                      }
+                      if(productTransaction){
+                        obj.buyerStatus = productTransaction.buyerStatus.status;
+                        obj.sellerStatus = productTransaction.sellerStatus.status;
+                        obj.orderId = productTransaction.orderId;
+                      }
+                      resObj.push(obj)
+                    })
+                    res.status(200);
+                    res.send({"totalData":totalData,"totalPage":totalPage,"curPage":pageNumber,"data": resObj,"statusCode":200});
+                  }
+                })
+              }
+            })
             }else{
               res.status(400);
               res.send({"Message": "Invalid order type",statusCode:400});
@@ -324,8 +357,8 @@ function OrderController(UserProfileDB,ProductDB,TransactionDB,CategoryDB) {
                 image : productImage,
                 orderType : tran.TransactionType,
                 location : transactionProduct.location,
-                buyerStatus : tran.buyerStatus,
-                sellerStatus : tran.sellerStatus
+                buyerStatus : tran.buyerStatus.status,
+                sellerStatus : tran.sellerStatus.status
               })
             })
             callback(null,finalRes);

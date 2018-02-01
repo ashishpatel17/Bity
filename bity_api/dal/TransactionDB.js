@@ -40,6 +40,25 @@ UserTransactionDB.Init = function(con) {
     }
 };
 
+UserTransactionDB.getUserAllTransaction = function (UserId, callback){
+    this.UserTransactionModel.find({$or:[{_id: UserId},{TransactionWith: UserId}]}, function (err, result){
+        if (err) callback(err);
+        else {
+            callback(null, result);
+        }
+    });
+};
+
+UserTransactionDB.getTransactionByProducts = function (productId, callback){
+    this.UserTransactionModel.find({ProductId:{$in:productId}}, function (err, result){
+        if (err) callback(err);
+        else {
+            callback(null, result);
+        }
+    });
+};
+
+
 UserTransactionDB.getUserTransaction = function (userId, orderId, callback){
     this.UserTransactionModel.findOne({_id: orderId,UserId:userId}, function (err, result){
         if (err) callback(err);
