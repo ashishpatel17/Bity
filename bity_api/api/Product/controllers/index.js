@@ -79,28 +79,28 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
           var expiryDate = new Date(productDetail.expiryDate);
           var strDate = expiryDate.getDate()+"/"+(expiryDate.getUTCMonth()+1)+"/"+expiryDate.getFullYear();
           var daysRemaining = Math.floor(( Date.parse(expiryDate) - Date.parse(new Date()) ) / 86400000);
-
+          var subCat = _.find(category.subCategory, function(subCat){ if(subCat.subCategoryId.toString()==productDetail.subcateory.toString()) return subCat; });
           var responseObj = {
             productId : productDetail._id,
             productName : productDetail.productName,
-            price : productDetail.price,
+            price : productDetail.price?productDetail.price:"",
             image : productImage,
-            productAddress : productDetail.address,
-            isNagotiable : productDetail.isNagotiable,
-            categoryId : productDetail.category,
-            subCategoryId : productDetail.subcateory,
+            productAddress : productDetail.address?productDetail.address:"",
+            isNagotiable : productDetail.isNagotiable?productDetail.isNagotiable:"",
+            categoryId : productDetail.category?productDetail.category:"",
+            subCategoryId : productDetail.subcateory?productDetail.subcateory:"",
             category : category.categoryName,
-            subCategory : _.find(category.subCategory, function(subCat){ if(subCat.subCategoryId.toString()==productDetail.subcateory.toString()) return subCat; }).subCategoryName,
-            producTitle : productDetail.productTitle,
-            productDescription : productDetail.productTitle,
-            productLocation : productDetail.location,
+            subCategory : subCat!=undefined?subCat.subCategoryName:"",
+            producTitle : productDetail.productTitle?productDetail.productTitle:"",
+            productDescription : productDetail.productTitle?productDetail.productTitle:"",
+            productLocation : productDetail.location?productDetail.location:"",
             sellerId : productDetail.sellerId,
             sellerEmail : sellerDetail.email,
-            sellerName : sellerDetail.fullName,
+            sellerName : sellerDetail.fullName?sellerDetail.fullName:"",
             sellerImage : (sellerDetail.profilePicture == undefined || sellerDetail.profilePicture == null)?profilePicPath+config.profileDefaultImage:profilePicPath+sellerDetail.profilePicture,
-            sellerRatingCount : (sellerDetail.sellerRating!=undefined && sellerDetail.sellerRating!=null)?sellerDetail.sellerRating.toFixed(1):undefined,
+            sellerRatingCount : (sellerDetail.sellerRating!=undefined && sellerDetail.sellerRating!=null)?sellerDetail.sellerRating.toFixed(1):"",
             sellerReviewCount : (sellerDetail.sellerReview!=undefined && sellerDetail.sellerReview!=null && sellerDetail.sellerReview!="")?sellerDetail.sellerReview.length:0,
-            sellerReview : sellerDetail.sellerReview,
+            sellerReview : sellerDetail.sellerReview?sellerDetail.sellerReview:"",
             isFollowedByUser : (sellerDetail.following!=undefined && sellerDetail.following!=null && sellerDetail.following!="" && sellerDetail.following.length>0)?true:false,
             isFavorite : userDetail.wishList.indexOf(productDetail._id)>-1?true:false,
             expiryDate : strDate,
@@ -156,10 +156,10 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
                   resObj.push({
                     productId : product._id,
                     productName : product.productName,
-                    price : product.price,
+                    price : product.price?product.price:"",
                     image : productImage,
-                    location : product.location,
-                    address : product.address
+                    location : product.location?product.location:"",
+                    address : product.address?product.address:""
                   })
                 })
                 res.status(200);
@@ -474,10 +474,10 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
               productId : result[i]._id,
               productTitle : result[i].productTitle,
               productName : result[i].productName,
-              price : result[i].price,
+              price : result[i].price?result[i].price:"",
               image : productImg,
-              location : result[i].location,
-              address : result[i].address,
+              location : result[i].location?result[i].location:"",
+              address : result[i].address?result[i].address:"",
               expiryDate : strDate,
               daysRemaining : daysRemaining
             });
@@ -501,21 +501,26 @@ function UserProfileController(productDB,UserProfileDB,categoryDB) {
           res.status(500);
           res.send({"Message": "unable to fetch data","statusCode":500});
         }else{
-          var reportMessage = (req.body['reportMessage']!=undefined && req.body['reportMessage']!=null)?req.body['reportMessage']:"";
-          productDB.addProductReport(req.body['productId'],loginRes.UserId,reportMessage,function(err,result){
-            if(err){
-              res.status(601);
-              res.send({"Message": "Failed to add report of the product","statusCode":601});
-            }else{
-              if(result){
-                res.status(200);
-                res.send({"Message": "Report posted for this product","statusCode":200});
+          if(loginRes){
+            var reportMessage = (req.body['reportMessage']!=undefined && req.body['reportMessage']!=null)?req.body['reportMessage']:"";
+            productDB.addProductReport(req.body['productId'],loginRes.UserId,reportMessage,function(err,result){
+              if(err){
+                res.status(601);
+                res.send({"Message": "Failed to add report of the product","statusCode":601});
               }else{
-                res.status(501);
-                res.send({"Message": "Product not found","statusCode":501});
+                if(result){
+                  res.status(200);
+                  res.send({"Message": "Report posted for this product","statusCode":200});
+                }else{
+                  res.status(501);
+                  res.send({"Message": "Product not found","statusCode":501});
+                }
               }
-            }
-          })
+            })
+          }else{
+            res.status(408);
+            res.send({"Message": "user not found","statusCode":408});
+          }
         }
       })
     }else{

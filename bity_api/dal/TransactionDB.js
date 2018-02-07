@@ -41,7 +41,7 @@ UserTransactionDB.Init = function(con) {
 };
 
 UserTransactionDB.getUserAllTransaction = function (UserId, callback){
-    this.UserTransactionModel.find({$or:[{_id: UserId},{TransactionWith: UserId}]}, function (err, result){
+    this.UserTransactionModel.find({$or:[{SellerId: UserId},{BuyerId: UserId}]}, function (err, result){
         if (err) callback(err);
         else {
             callback(null, result);
@@ -79,15 +79,6 @@ UserTransactionDB.updateBuyerOrderStatus = function (orderId,status,callback){
 
 UserTransactionDB.updateSellerOrderStatus = function (orderId,status,callback){
     this.UserTransactionModel.findOneAndUpdate({_id: orderId},{sellerStatus:{status:status,lastUpdateDate:new Date()}}, function (err, result){
-        if (err) callback(err);
-        else {
-            callback(null, result);
-        }
-    });
-};
-
-UserTransactionDB.getUserAllTransaction = function (UserId, callback){
-    this.UserTransactionModel.find({$or:[{_id: UserId},{TransactionWith: UserId}]}, function (err, result){
         if (err) callback(err);
         else {
             callback(null, result);

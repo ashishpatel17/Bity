@@ -13,15 +13,20 @@ function WishlistController(UserProfileDB,productDB) {
           res.status(500);
           res.send({"Message": "Unable to fetch data","statusCode":500});
         }else{
-          UserProfileDB.addUserWishList(loginRes._id,req.params['productId'],function(err,result){
-            if(err){
-              res.status(601);
-              res.send({"Message": "Unable to add wish list","statusCode":601});
-            }else{
-              res.status(200);
-              res.send({"Message": "Product added to wishlist","statusCode":200});
-            }
-          })
+          if(loginRes){
+            UserProfileDB.addUserWishList(loginRes._id,req.params['productId'],function(err,result){
+              if(err){
+                res.status(601);
+                res.send({"Message": "Unable to add wish list","statusCode":601});
+              }else{
+                res.status(200);
+                res.send({"Message": "Product added to wishlist","statusCode":200});
+              }
+            })
+          }else{
+            res.status(408);
+            res.send({"Message": "user not found","statusCode":408});
+          }
         }
       })
     }else{
@@ -39,15 +44,20 @@ function WishlistController(UserProfileDB,productDB) {
           res.status(500);
           res.send({"Message": "Unable to fetch data","statusCode":500});
         }else{
-          UserProfileDB.deleteFromWishList(loginRes._id,req.params['productId'],function(err,result){
-            if(err){
-              res.status(601);
-              res.send({"Message": "Unable to delete from  wishlist","statusCode":601});
-            }else{
-              res.status(200);
-              res.send({"Message": "Product deleted from wishlist","statusCode":200});
-            }
-          })
+          if(loginRes){
+            UserProfileDB.deleteFromWishList(loginRes._id,req.params['productId'],function(err,result){
+              if(err){
+                res.status(601);
+                res.send({"Message": "Unable to delete from  wishlist","statusCode":601});
+              }else{
+                res.status(200);
+                res.send({"Message": "Product deleted from wishlist","statusCode":200});
+              }
+            })
+          }else{
+            res.status(408);
+            res.send({"Message": "user not found","statusCode":408});
+          }
         }
       })
     }else{
@@ -64,11 +74,8 @@ function WishlistController(UserProfileDB,productDB) {
           res.status(500);
           res.send({"Message": "Unable to fetch data","statusCode":500});
         }else{
-          UserProfileDB.getUserById(loginRes._id,function(err,result){
-            if(err){
-              res.status(501);
-              res.send({"Message": "Unable to get user wishlist","statusCode":501});
-            }else{
+            if(loginRes){
+              var result = loginRes;
               var wishlistProducts = result.wishList;
               var totalData = wishlistProducts.length;
               productDB.getProductByCondition({_id:{$in:wishlistProducts}},function(err,proRes){
@@ -94,10 +101,10 @@ function WishlistController(UserProfileDB,productDB) {
                     responseObj.push({
                       productId : proRes[i]._id,
                       productName : proRes[i].productName,
-                      price : proRes[i].price,
+                      price : proRes[i].price?proRes[i].price:"",
                       image : productImage,
-                      location : proRes[i].location,
-                      address : proRes[i].address
+                      location : proRes[i].location?proRes[i].location:"",
+                      address : proRes[i].address?proRes[i].address:""
                     })
                   }
                   var pageNumber = parseInt(req.params['pageNumber']);
@@ -107,8 +114,10 @@ function WishlistController(UserProfileDB,productDB) {
                   res.send({totalData:totalData,totalPage:totalPage,curPage:pageNumber,data:responseObj,statusCode:200});
                 }
               })
+            }else{
+              res.status(408);
+              res.send({"Message": "user not found","statusCode":408});
             }
-          })
         }
       })
     }else{

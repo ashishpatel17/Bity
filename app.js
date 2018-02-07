@@ -130,5 +130,5 @@ app.use(MessageApi);
 var DashboardApi = require('./bity_api/api/Dashboard/index');
 app.use(DashboardApi);
 
-http.createServer(app).listen(port);
+http.createServer(app).listen(port,"0.0.0.0");
 console.log("[INFO] App - Server is listening on port %d in %s mode.", port, app.settings.env);

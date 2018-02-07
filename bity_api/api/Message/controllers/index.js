@@ -14,43 +14,48 @@ function MessageController(UserProfileDB,ThreadListDB,ThreadMessageDB) {
             res.status(500);
             res.send({"Message": "unauthorized to fetch data","statusCode":500});
           }else{
-              ThreadListDB.getUserThreads(loginRes._id,function(err,result){
-                if(err){
-                  res.status(501);
-                  res.send({"Message": "unable to get message threads","statusCode":501});
-                }else{
-                  var totalData = result.length;
-                  result = _.sortBy(result,function(rec){ return rec.lastMessage.dateTime }).reverse();
-                  if(req.params['pageSize'] && req.params['pageSize']!=null && req.params['pageSize']!="" && req.params['pageNumber'] && req.params['pageNumber']!=null && req.params['pageNumber']!=""){
-                    var pageNumber = req.params['pageNumber'];
-                    var pageSize = req.params['pageSize'];
-                    result = result.slice(genericUtils.GetStartIndexForPagination(pageSize,pageNumber),genericUtils.GetEndIndexForPagination(pageSize,pageNumber,result.length));
-                  }
+              if(loginRes){
+                ThreadListDB.getUserThreads(loginRes._id,function(err,result){
+                  if(err){
+                    res.status(501);
+                    res.send({"Message": "unable to get message threads","statusCode":501});
+                  }else{
+                    var totalData = result.length;
+                    result = _.sortBy(result,function(rec){ return rec.lastMessage.dateTime }).reverse();
+                    if(req.params['pageSize'] && req.params['pageSize']!=null && req.params['pageSize']!="" && req.params['pageNumber'] && req.params['pageNumber']!=null && req.params['pageNumber']!=""){
+                      var pageNumber = req.params['pageNumber'];
+                      var pageSize = req.params['pageSize'];
+                      result = result.slice(genericUtils.GetStartIndexForPagination(pageSize,pageNumber),genericUtils.GetEndIndexForPagination(pageSize,pageNumber,result.length));
+                    }
 
-                  var finalRes = [];
-                  var profilePicPath = "http://"+req.headers.host+"/"+config.profilePicturePublicPath;
-                  var defaultProfileImg = profilePicPath+config.profileDefaultImage
-                  result.forEach(function(rec){
-                    var sender = rec.lastMessage.senderId;
-                    var senderProfile = _.find(rec.participants,function(rec){if(sender.toString().toLowerCase() == rec.userId.toString().toLowerCase()){ return rec }});
-                    var lastDate = new Date(rec.lastMessage.dateTime);
-                    var strDate = lastDate.getDate()+"/"+(lastDate.getUTCMonth()+1)+"/"+lastDate.getFullYear() +"  "+ lastDate.getHours()+":"+lastDate.getMinutes()+":"+lastDate.getSeconds();
-                    finalRes.push({
-                      threadId : rec._id,
-                      threadName : senderProfile.userName,
-                      threadImage : senderProfile.userProfilePic?profilePicPath+senderProfile.userProfilePic:defaultProfileImg,
-                      lastMessage : rec.lastMessage.message,
-                      lastMessageTime : strDate
+                    var finalRes = [];
+                    var profilePicPath = "http://"+req.headers.host+"/"+config.profilePicturePublicPath;
+                    var defaultProfileImg = profilePicPath+config.profileDefaultImage
+                    result.forEach(function(rec){
+                      var sender = rec.lastMessage.senderId;
+                      var senderProfile = _.find(rec.participants,function(rec){if(sender.toString().toLowerCase() == rec.userId.toString().toLowerCase()){ return rec }});
+                      var lastDate = new Date(rec.lastMessage.dateTime);
+                      var strDate = lastDate.getDate()+"/"+(lastDate.getUTCMonth()+1)+"/"+lastDate.getFullYear() +"  "+ lastDate.getHours()+":"+lastDate.getMinutes()+":"+lastDate.getSeconds();
+                      finalRes.push({
+                        threadId : rec._id,
+                        threadName : senderProfile.userName,
+                        threadImage : senderProfile.userProfilePic?profilePicPath+senderProfile.userProfilePic:defaultProfileImg,
+                        lastMessage : rec.lastMessage.message,
+                        lastMessageTime : strDate
+                      })
                     })
-                  })
-                  var pageNumber = parseInt(req.params['pageNumber']);
-                  var pageSize = parseInt(req.params['pageSize']);
-                  var totalPage = Math.ceil(totalData/pageSize);
+                    var pageNumber = parseInt(req.params['pageNumber']);
+                    var pageSize = parseInt(req.params['pageSize']);
+                    var totalPage = Math.ceil(totalData/pageSize);
 
-                  res.status(200);
-                  res.send({totalData:totalData,totalPage:totalPage,curPage:pageNumber,data:finalRes,statusCode:200});
-                }
-              })
+                    res.status(200);
+                    res.send({totalData:totalData,totalPage:totalPage,curPage:pageNumber,data:finalRes,statusCode:200});
+                  }
+                })
+              }else{
+                res.status(408);
+                res.send({"Message": "user not found","statusCode":408});
+              }
           }
         })
     }else{
@@ -93,6 +98,9 @@ function MessageController(UserProfileDB,ThreadListDB,ThreadMessageDB) {
             }
            }
           })
+       }else{
+         res.status(400);
+         res.send({"Message": "invalid request",statusCode:400});
        }
      }else{
        res.status(400);
@@ -201,12 +209,16 @@ function MessageController(UserProfileDB,ThreadListDB,ThreadMessageDB) {
             }
           },
           function(threadRes,callback){
-            var users = threadRes.participants.map(function(e){return e.userId});
+            var users = [sender,reciver];
             UserProfileDB.getMultipleUser(users,function(err,userResult){
               if(err){
                 callback({errorCode:503,Message:"unable to get user data"},null);
               }else{
-                callback(null,threadRes,userResult)
+                if(userResult.lenth==2){
+                  callback(null,threadRes,userResult)
+                }else{
+                  callback({errorCode:408,Message:"user not found"},null);
+                }
               }
             })
           },

@@ -156,16 +156,19 @@ function OrderController(UserProfileDB,ProductDB,TransactionDB,CategoryDB) {
                       var obj = {
                         productId : product._id,
                         productName : product.productName,
-                        price : product.price,
+                        price : product.price?product.price:"",
                         image : productImage,
-                        location : product.location,
+                        location : product.location?product.location:"",
                         expiryDate : strDate,
-                        daysRemaining : daysRemaining
+                        daysRemaining : daysRemaining,
+                        buyerStatus:"",
+                        sellerStatus:"",
+                        orderId:""
                       }
                       if(productTransaction){
-                        obj.buyerStatus = productTransaction.buyerStatus.status;
-                        obj.sellerStatus = productTransaction.sellerStatus.status;
-                        obj.orderId = productTransaction.orderId;
+                        obj.buyerStatus = (productTransaction.buyerStatus && productTransaction.buyerStatus.status)?productTransaction.buyerStatus.status:"";
+                        obj.sellerStatus = (productTransaction.sellerStatus && productTransaction.sellerStatus.status)?productTransaction.sellerStatus.status:"";
+                        obj.orderId = productTransaction.orderId?productTransaction.orderId:"";
                       }
                       resObj.push(obj)
                     })
@@ -292,26 +295,26 @@ function OrderController(UserProfileDB,ProductDB,TransactionDB,CategoryDB) {
                 }
                 var tranDate = new Date(orderDetail.TransactionDate);
                 var strDate = tranDate.getDate()+"/"+(tranDate.getUTCMonth()+1)+"/"+tranDate.getFullYear();
-
+                var subCateory = _.find(category.subCategory, function(subCat){ if(subCat.subCategoryId.toString()==productDetail.subcateory.toString()) return subCat; });
                 var responseObj = {
-                  productId : productDetail._id,
-                  productName : productDetail.productName,
-                  price : productDetail.price,
+                  productId : productDetail._id?productDetail._id:"",
+                  productName : productDetail.productName?productDetail.productName:"",
+                  price : productDetail.price?productDetail.price:"",
                   image : productImage,
-                  isNagotiable : productDetail.isNagotiable,
+                  isNagotiable : productDetail.isNagotiable?productDetail.isNagotiable:"",
                   categoryId : productDetail.category,
                   subCategoryId : productDetail.subcateory,
                   category : category.categoryName,
-                  subCategory : _.find(category.subCategory, function(subCat){ if(subCat.subCategoryId.toString()==productDetail.subcateory.toString()) return subCat; }).subCategoryName,
-                  producTitle : productDetail.productTitle,
-                  productDescription : productDetail.productTitle,
-                  productLocation : productDetail.location,
-                  orderType : orderDetail.TransactionType,
-                  orderPrice : orderDetail.Price,
+                  subCategory : (subCateory!=undefined && subCateory.subCategoryName)?subCateory.subCategoryName:"",
+                  producTitle : productDetail.productTitle?productDetail.productTitle:"",
+                  productDescription : productDetail.productDescription?productDetail.productDescription:"",
+                  productLocation : productDetail.location?productDetail.location:"",
+                  orderType : orderDetail.TransactionType?orderDetail.TransactionType:"",
+                  orderPrice : orderDetail.Price?orderDetail.Price:"",
                   orderDate : strDate,
-                  orderStatus : orderDetail.Status,
-                  sellerStatus : orderDetail.sellerStatus,
-                  buyerStatus : orderDetail.buyerStatus
+                  orderStatus : orderDetail.Status?orderDetail.Status:"",
+                  sellerStatus : orderDetail.sellerStatus?orderDetail.sellerStatus:"",
+                  buyerStatus : orderDetail.buyerStatus?orderDetail.buyerStatus:""
                 }
                 callback(null,responseObj);
               }
@@ -350,15 +353,15 @@ function OrderController(UserProfileDB,ProductDB,TransactionDB,CategoryDB) {
               }
               finalRes.push({
                 orderId : tran._id,
-                status : tran.status,
+                status : tran.status?tran.status:"",
                 productId : transactionProduct._id,
                 productName : transactionProduct.productName,
-                price : transactionProduct.price,
+                price : transactionProduct.price?transactionProduct.price:"",
                 image : productImage,
-                orderType : tran.TransactionType,
-                location : transactionProduct.location,
-                buyerStatus : tran.buyerStatus.status,
-                sellerStatus : tran.sellerStatus.status
+                orderType : tran.TransactionType?tran.TransactionType:"",
+                location : transactionProduct.location?transactionProduct.location:"",
+                buyerStatus : (tran.buyerStatus && tran.buyerStatus.status)?tran.buyerStatus.status:"",
+                sellerStatus : (tran.sellerStatus && tran.sellerStatus.status)?tran.sellerStatus.status:""
               })
             })
             callback(null,finalRes);

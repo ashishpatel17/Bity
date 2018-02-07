@@ -11,36 +11,41 @@ function UserReviewController(userAuthDB,UserProfileDB,UserLoginDB,TransactionDB
     if(req && typeof req !== 'undefined' && req.body && typeof req.body !== 'undefined' &&
     req.body["userId"] && typeof req.body["userId"] !== 'undefined' &&
     req.body["rating"] && typeof req.body["rating"] !== 'undefined' &&
-    req.body["comment"] && typeof req.body["comment"] !== 'undefined'){
-      UserProfileDB.getUserById(req.body["userId"],function(err,result){
-        if(err){
-          res.status(500);
-          res.send({"Message": "Unable to fetch data","statusCode":500});
-        }else{
-          if(result){
-            result.sellerReview.push({
-              userId : req.body["userId"],
-              userName : result.fullName,
-              comment : req.body["comment"],
-              rating : parseFloat(req.body["rating"]),
-              postDate : new Date()
-            })
-            result.sellerRating = calculateAverageRating(result.sellerReview);
-            UserProfileDB.updateUserProfile(result,function(err){
-              if(err){
-                res.status(601);
-                res.send({"Message": "Fail to add user review","statusCode":601});
-              }else{
-                res.status(200);
-                res.send({"Message": "Review successfully posted","statusCode":200});
-              }
-            })
+    req.body["comment"] && typeof req.body["comment"] !== 'undefined' ){
+      if(parseInt(req.body["rating"])<0 || parseInt(req.body["rating"])>5){
+        res.status(504);
+        res.send({"Message": "Invalid rating it should be between 0 to 5","statusCode":504});
+      }else{
+        UserProfileDB.getUserById(req.body["userId"],function(err,result){
+          if(err){
+            res.status(500);
+            res.send({"Message": "Unable to fetch data","statusCode":500});
           }else{
-            res.status(408);
-            res.send({"Message": "User not found","statusCode":408});
+            if(result){
+              result.sellerReview.push({
+                userId : "",
+                userName : "",
+                comment : req.body["comment"],
+                rating : parseInt(req.body["rating"]),
+                postDate : new Date()
+              })
+              result.sellerRating = calculateAverageRating(result.sellerReview);
+              UserProfileDB.updateUserProfile(result,function(err){
+                if(err){
+                  res.status(601);
+                  res.send({"Message": "Fail to add user review","statusCode":601});
+                }else{
+                  res.status(200);
+                  res.send({"Message": "Review successfully posted","statusCode":200});
+                }
+              })
+            }else{
+              res.status(408);
+              res.send({"Message": "User not found","statusCode":408});
+            }
           }
-        }
-      })
+        })
+      }
     }else{
       res.status(400);
       res.send({"Message": "Invalid request","statusCode":400});
@@ -70,7 +75,7 @@ function UserReviewController(userAuthDB,UserProfileDB,UserLoginDB,TransactionDB
               finalResponse.push({
                 date : rDate
                 ,message : urev.comment
-                ,rating : (urev.rating!=undefined && urev.rating!=null)?urev.rating.toFixed(1):undefined
+                ,rating : (urev.rating!=undefined && urev.rating!=null)?urev.rating.toFixed(1):""
               })
             })
             var pageNumber = parseInt(req.params['pageNumber']);
@@ -98,9 +103,10 @@ function UserReviewController(userAuthDB,UserProfileDB,UserLoginDB,TransactionDB
     var totalRating = 0;
     var distRating = Object.keys(ratingGroup);
     distRating.forEach(function(rating){
-      totalRating += parseFloat(rating);
+      totalRating += ratingGroup[rating].length;
       denominator =  denominator+(parseFloat(rating)*ratingGroup[rating].length);
     })
+    console.log(totalRating);
     var averageRating = parseFloat((denominator/totalRating).toFixed(1));
     // if(float>=0.5){
     //   averageRating = Math.ceil(averageRating);

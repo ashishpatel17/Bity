@@ -88,7 +88,7 @@ function UserProfileController(userAuthDB,UserProfileDB,UserLoginDB,TransactionD
                 var date = new Date();
                 var fileName = result.fullName.replace(/ /g,'')+"_"+date.getTime()+"."+fileType.split("/")[1];
                 result["profilePicture"] = fileName;
-                fs.writeFile(filePath+fileName,req.files.profilePic.data,"binary",function(err) {
+                fs.writeFile(filePath+"/"+fileName,req.files.profilePic.data,"binary",function(err) {
                   if(err){
                     res.status(601);
                     res.send({"Message": "unable to update user profile","statusCode":601});
@@ -101,8 +101,17 @@ function UserProfileController(userAuthDB,UserProfileDB,UserLoginDB,TransactionD
                         if(oldFileName!=""){
                           fs.unlink(filePath+"/"+oldFileName,function(err){});
                         }
+                        var profilePicPath = "http://"+req.headers.host+"/"+config.profilePicturePublicPath;
+                        var resData = {
+                          userId : result._id
+                          , userName : result.userName
+                          , userFullName : result.fullName
+                          , email : result.email
+                          , profilePicture: (result.profilePicture == undefined || result.profilePicture == null)?profilePicPath+config.profileDefaultImage:profilePicPath+result.profilePicture
+                          , isEmailVerified : result.isEmailVerified
+                        }
                         res.status(200);
-                        res.send({"Message": "User successfully updated","statusCode":200});
+                        res.send({"Message": "User successfully updated","statusCode":200,"data":resData});
                       }
                     })
                   }
@@ -117,8 +126,17 @@ function UserProfileController(userAuthDB,UserProfileDB,UserLoginDB,TransactionD
                   res.status(601);
                   res.send({"Message": "Failed to update user","statusCode":601});
                 }else{
+                  var profilePicPath = "http://"+req.headers.host+"/"+config.profilePicturePublicPath;
+                  var resData = {
+                    userId : result._id
+                    , userName : result.userName
+                    , userFullName : result.fullName
+                    , email : result.email
+                    , profilePicture: (result.profilePicture == undefined || result.profilePicture == null)?profilePicPath+config.profileDefaultImage:profilePicPath+result.profilePicture
+                    , isEmailVerified : result.isEmailVerified
+                  }
                   res.status(200);
-                  res.send({"Message": "User successfully updated","statusCode":200});
+                  res.send({"Message": "User successfully updated","statusCode":200,"data":resData});
                 }
               })
             }
@@ -417,21 +435,21 @@ function UserProfileController(userAuthDB,UserProfileDB,UserLoginDB,TransactionD
           }else{
             var profilePicPath = "http://"+req.headers.host+"/"+config.profilePicturePublicPath;
             var responseObj = {
-              fullName: usrResult.fullName
-              , userName: usrResult.userName
-              , email: usrResult.email
-              , googleId: usrResult.googleId
-              , facebookId: usrResult.facebookId
+              fullName: usrResult.fullName?usrResult.fullName:""
+              , userName: usrResult.userName?usrResult.userName:""
+              , email: usrResult.email?usrResult.email:""
+              , googleId: usrResult.googleId?usrResult.googleId:""
+              , facebookId: usrResult.facebookId?usrResult.facebookId:""
               , profilePicture: (usrResult.profilePicture == undefined || usrResult.profilePicture == null)?profilePicPath+config.profileDefaultImage:profilePicPath+usrResult.profilePicture
-              , address: usrResult.address
-              , phoneNumber: usrResult.phoneNumber
-              , activeStatus: usrResult.activeStatus
-              , userType: usrResult.userType
-              , bitcoinAddress: usrResult.bitcoinAddress
-              , sellerRating: (usrResult.sellerRating!=undefined && usrResult.sellerRating!=null)?usrResult.sellerRating.toFixed(1):undefined
-              , following: usrResult.following.length
-              , follower: followResult.length
-              , transactions: tranResult.length
+              , address: usrResult.address?usrResult.address:""
+              , phoneNumber: usrResult.phoneNumber?usrResult.phoneNumber:""
+              , activeStatus: usrResult.activeStatus?usrResult.activeStatus:""
+              , userType: usrResult.userType?usrResult.userType:""
+              , bitcoinAddress: usrResult.bitcoinAddress?usrResult.bitcoinAddress:""
+              , sellerRating: (usrResult.sellerRating!=undefined && usrResult.sellerRating!=null)?usrResult.sellerRating.toFixed(1):""
+              , following: usrResult.following?usrResult.following.length:0
+              , follower: followResult?followResult.length:0
+              , transactions: tranResult?tranResult.length:0
             }
             callback(null,responseObj);
           }

@@ -107,7 +107,7 @@ function DashboardController(CategoryDB,ProductDB,UserProfileDB,TransactionDB) {
           })
         },
         function(callback){
-          TransactionDB.getUserTransactionByOrderType(loginRes._id,"sales",function(err,result){
+          TransactionDB.getUserSalesOrder(loginRes._id,function(err,result){
             if(err){
               callback({errorCode:500,Message:"unable to find user sales"});
             }else{
